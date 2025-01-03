@@ -117,3 +117,5 @@ dmypy.json
 
 # My ignores
 assignment.txt
+literature.txt
+test.py
