@@ -11,12 +11,10 @@ from pathlib import Path
 class SchedulePainter():
 
     def __init__(self, parent_widget):
-        settings = utilities.load_settings()        
+        settings = utilities.load_settings()      
         self.canvas = tk.Canvas(parent_widget, bg="grey", width=settings["schedule_width"], height=settings["schedule_height"])
         self.orientation = settings["schedule_orientation"]
         self.active_schedule = None
-        # TODO Přidat, přepínání horizontálního a vertikálního rozvrhu.
-        # TODO Přidat možnost scrolování pokud je obrazovka příliš malá.
 
     def update(self):
         settings = utilities.load_settings()
@@ -37,10 +35,11 @@ class SchedulePainter():
             # TODO: Raise exception.
 
     def draw_horizontal(self):
-        self.canvas.pack(fill='none', expand=False)
+        self.canvas.create_line(0, 0, 200, 200, fill="red")
+        # TODO: Finish
 
     def draw_vertical(self):
         self.canvas.pack(fill='none', expand=False)
-        #TODO: Finish
+        # TODO: Finish
 
 
