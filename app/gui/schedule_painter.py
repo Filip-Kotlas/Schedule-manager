@@ -6,7 +6,6 @@ from app.utils import config
 from app.utils import utilities
 from app.src.lesson import Lesson
 from app.src.schedule import Schedule
-import json
 from pathlib import Path
 import math
 
@@ -57,9 +56,9 @@ class SchedulePainter():
 
     def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.line_width_factor)
-        text_size = int(general_size * config.text_size_factor * self.settings["text_scale"])
-        text_padding = int(general_size * config.text_padding_factor * self.settings["text_scale"])
+        line_width = int(general_size * config.bg_line_width_factor)
+        text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
+        text_padding = int(general_size * config.bg_text_padding_factor * self.settings["text_scale"])
         schedule_padding = int(general_size * config.schedule_padding_factor)
         side_offset = int(general_size * config.side_offset_factor)
         left_side_offset = int(general_size * config.left_side_offset_factor)
@@ -110,17 +109,85 @@ class SchedulePainter():
 
         return (base_rectangle_coor, (cell_width, cell_height))
 
+    def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, hour_width: int, day_height: int) -> None:
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
+        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.end_time.minute
+        outline_width = int(general_size * config.lssn_outline_width_factor)
+
+        draw.rectangle([x, y, x + hour_width*duration/60.0, y + day_height],
+                       fill=lesson.color,
+                       outline=darker_color,
+                       width=outline_width)
+        draw.rectangle([x, y + config.lssn_upper_part_ratio*day_height, x + hour_width*duration/60.0, y + day_height],
+                       fill="white",
+                       outline=lesson.color,
+                       width=outline_width)
+        draw.line([x+outline_width,
+                   y + config.lssn_upper_part_ratio*day_height + (outline_width-1)//2,
+                   x + hour_width*duration/60.0 - outline_width,
+                   y + config.lssn_upper_part_ratio*day_height + (outline_width-1)//2],
+                  fill="white",
+                  width=outline_width)
+
+        text_size = int(day_height*config.lssn_upper_part_ratio*config.lssn_name_text_ratio)
+        text_padding = int(general_size*config.lssn_text_padding_factor)
+        text_outline_width = int(max(text_size*config.lssn_text_outline_width_factor, 1))
+        text_font = ImageFont.truetype(self.font, text_size)
+        while text_font.getlength(lesson.name) > hour_width*duration/60.0 - 2*outline_width - 2*text_padding:
+            text_size -= 1
+            text_font = ImageFont.truetype(self.font, text_size)
+        # TODO: Změnit velikost textu, aby byla závislá na dostupném místě (a to i šířce).
+        # TODO: Umožnit volbu fontu
+        mid_x = x + hour_width*duration/60.0/2
+        mid_y = y + config.lssn_upper_part_ratio*day_height/2
+        for dx in range(-text_outline_width, text_outline_width + 1):
+            for dy in range(-text_outline_width, text_outline_width + 1):
+                draw.text((mid_x + dx, mid_y + dy),
+                          lesson.name,
+                          fill="white",
+                          font=text_font,
+                          anchor="mm")
+        draw.text((mid_x, mid_y),
+                  lesson.name,
+                  fill="black",
+                  font=text_font,
+                  anchor="mm")
+        text_size = int(day_height*(1-config.lssn_upper_part_ratio)*config.lssn_info_text_ratio)
+        text_font = ImageFont.truetype(self.font, text_size)
+        while text_font.getlength(lesson.instructor + "  " + lesson.place) > hour_width*duration/60.0 - 2*outline_width - 2*text_padding:
+            text_size -= 1
+            text_font = ImageFont.truetype(self.font, text_size)
+        draw.text((x + outline_width + text_padding,
+                   y + (1 + config.lssn_upper_part_ratio)/2*day_height - outline_width/2),
+                   text=lesson.instructor,
+                   font=text_font,
+                   fill="black",
+                   anchor="lm")
+        draw.text((x + hour_width*duration/60.0 - outline_width - text_padding,
+                   y + (1 + config.lssn_upper_part_ratio)/2*day_height - outline_width/2),
+                   text=lesson.place,
+                   font=text_font,
+                   fill="black",
+                   anchor="rm")
+
     def draw_vertical(self) -> None:
         draw = ImageDraw.Draw(self.image)
-        self.draw_vertical_background(draw)
-        #self.draw_course(draw, self.active_schedule.courses[0], 200, 100, 100, 50)
+        base_rectangle, cell_dimension = self.draw_vertical_background(draw)
+        
+        self.draw_lesson_vertical(draw,
+                                    self.active_schedule.lessons[0],
+                                    base_rectangle[0],
+                                    base_rectangle[1],
+                                    cell_dimension[0],
+                                    cell_dimension[1])
         # TODO: Finish
 
     def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.line_width_factor)
-        text_size = int(general_size * config.text_size_factor * self.settings["text_scale"])
-        text_padding = int(general_size * config.text_padding_factor * self.settings["text_scale"])
+        line_width = int(general_size * config.bg_line_width_factor)
+        text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
+        text_padding = int(general_size * config.bg_text_padding_factor * self.settings["text_scale"])
         schedule_padding = int(general_size * config.schedule_padding_factor)
         side_offset = int(general_size * config.side_offset_factor)
         top_side_offset = int(general_size * config.top_side_offset_factor)
@@ -183,36 +250,68 @@ class SchedulePainter():
 
         return (base_rectangle_coor, (cell_width, cell_height))
 
-    def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, hour_width: int, day_height: int) -> None:
+    def draw_lesson_vertical(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, day_width: int, hour_height: int) -> None:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
         darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
         duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.end_time.minute
-        name_text_size = day_height//5
-        line_width = int(general_size * config.line_width_factor)
+        outline_width = int(general_size * config.lssn_outline_width_factor)
 
-        draw.rectangle([x, y, x + hour_width*duration/60.0, y + day_height],
+        draw.rectangle([x, y, x + day_width, y + hour_height*duration/60.0],
                        fill=lesson.color,
                        outline=darker_color,
-                       width=line_width)
-        draw.rectangle([x, y + config.lesson_upper_part_ratio*day_height, x + hour_width*duration/60.0, y + day_height],
+                       width=outline_width)
+        draw.rectangle([x, y + config.lssn_upper_part_ratio*hour_height*duration/60.0, x + day_width, y + hour_height*duration/60.0],
                        fill="white",
                        outline=lesson.color,
-                       width=line_width)
-        draw.line([x+line_width,
-                   y + config.lesson_upper_part_ratio*day_height + (line_width-1)//2,
-                   x + hour_width*duration/60.0 - line_width,
-                   y + config.lesson_upper_part_ratio*day_height + (line_width-1)//2],
+                       width=outline_width)
+        draw.line([x+outline_width,
+                   y + config.lssn_upper_part_ratio*hour_height*duration/60.0 + (outline_width-1)//2,
+                   x + day_width - outline_width,
+                   y + config.lssn_upper_part_ratio*hour_height*duration/60.0 + (outline_width-1)//2],
                   fill="white",
-                  width=line_width)
-        print(line_width)
-        text_font = ImageFont.truetype(self.font, name_text_size)
-        # TODO: Změnit velikost textu aby byla závislá na dostupném místě.
+                  width=outline_width)
+
+        text_size = int(day_width*config.lssn_upper_part_ratio*config.lssn_name_text_ratio)
+        text_padding = int(general_size*config.lssn_text_padding_factor)
+        text_outline_width = int(max(text_size*config.lssn_text_outline_width_factor, 1))
+        text_font = ImageFont.truetype(self.font, text_size)
+        while text_font.getlength(lesson.name) > day_width - 2*outline_width - 2*text_padding:
+            text_size -= 1
+            text_font = ImageFont.truetype(self.font, text_size)
+        # TODO: Změnit velikost textu, aby byla závislá na dostupném místě (a to i šířce).
         # TODO: Umožnit volbu fontu
-        draw.text((x + hour_width*duration/60.0/2, y + config.lesson_upper_part_ratio*day_height/2),
+        mid_x = x + day_width/2
+        mid_y = y + config.lssn_upper_part_ratio*hour_height*duration/60.0/2
+        for dx in range(-text_outline_width, text_outline_width + 1):
+            for dy in range(-text_outline_width, text_outline_width + 1):
+                draw.text((mid_x + dx, mid_y + dy),
+                          lesson.name,
+                          fill="white",
+                          font=text_font,
+                          anchor="mm")
+        draw.text((mid_x, mid_y),
                   lesson.name,
                   fill="black",
                   font=text_font,
                   anchor="mm")
+        text_size = int((hour_height*duration/60.0*(1-config.lssn_upper_part_ratio)-text_padding)/2*config.lssn_info_text_ratio)
+        text_font = ImageFont.truetype(self.font, text_size)
+        while (text_font.getlength(lesson.instructor) > day_width - 2*outline_width - 2*text_padding
+               or text_font.getlength(lesson.place) > day_width - 2*outline_width - 2*text_padding):
+            text_size -= 1
+            text_font = ImageFont.truetype(self.font, text_size)
+        draw.text((x + day_width/2,
+                   y + (2/3 * config.lssn_upper_part_ratio + 1/3)*hour_height*duration/60.0 - outline_width/3),
+                   text=lesson.instructor,
+                   font=text_font,
+                   fill="black",
+                   anchor="mm")
+        draw.text((x + day_width/2,
+                   y + (1/3 * config.lssn_upper_part_ratio + 2/3)*hour_height*duration/60.0 - outline_width/3),
+                   text=lesson.place,
+                   font=text_font,
+                   fill="black",
+                   anchor="mm")
 
     def get_canvas(self, parent_widget) -> tk.Canvas:
         canvas = tk.Canvas(parent_widget, width=self.settings["schedule_width"], height=self.settings["schedule_height"], background="red")

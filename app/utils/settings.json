@@ -1,10 +1,10 @@
 {
-    "schedule_width": 1200,
+    "schedule_width": 800,
     "schedule_height": 600,
     "schedule_orientation": "horizontal",
     "day_start": "08:00",
     "day_end": "20:00",
-    "days_in_week": "1111110",
+    "days_in_week": "1111111",
     "text_scale": 1.0,
     "text_font": "arial.ttf",
     "text_bold_font": "arialbd.ttf"

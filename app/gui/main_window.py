@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog
-import tkinter.ttk as ttk
+from tkinter import ttk
+import pickle
 from typing import List
 from typing import Dict
 from enum import Enum
 from datetime import time
-from PIL import Image, ImageDraw, ImageTk
 from app.utils import config
 from app.utils import utilities
 from app.src.lesson import Lesson
@@ -22,7 +22,7 @@ class MainWindow():
         self.initialize_menu()
         self.schedules: List[Schedule] = []
         self.schedules.append(Schedule("Rozvrh 1"))
-        course1 = Lesson("Matematika", "T-201", "Krbálek", time(hour=8, minute=30), time(hour=10, minute=30), (35, 125, 200))
+        course1 = Lesson("MateMatika", "T-201", "Krbálek", time(hour=8, minute=30), time(hour=10, minute=30), (100, 30, 255))
         self.schedules[0].lessons.append(course1)
         self.schedules.append(Schedule("Rozvrh 2"))
         self.schedules.append(Schedule("Rozvrh 3"))
@@ -38,7 +38,7 @@ class MainWindow():
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Soubor", menu=file_menu)
         file_menu.add_command(label="Nový")
-        file_menu.add_command(label="Otevřít")
+        file_menu.add_command(label="Otevřít", command=self.load_schedule)
         file_menu.add_command(label="Uložit jako...", command=self.save_schedule_as)
         file_menu.add_command(label="Uložit")
 
@@ -274,15 +274,27 @@ class MainWindow():
             # TODO: Dodělat. Ať to vyhodí nějaké varovné dialogové okno třeba.
 
         filename = filedialog.asksaveasfilename(defaultextension=".png",
-                                                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("PDF files", "*.pdf")],
+                                                filetypes=[("PNG files", "*.png"),
+                                                           ("JPEG files", "*.jpg"),
+                                                           ("PDF files", "*.pdf"),
+                                                           ("JSON file", ".json")],
                                                 initialfile="Rozvrh")
-        # TODO: Zkontrolovat, že tohle je správný způsob psaní kódu.
         if filename:
             if filename.endswith(".pdf"):
                 self.painter.image.save(filename, "PDF")
+            elif filename.endswith(".json"):
+                self.painter.active_schedule.save_to_json_file(filename)
             else:
                 self.painter.image.save(filename)
-        # TODO: Přidat další formáty, pro zpětné načtení
+                # TODO: Zkontrolovat, že tohle je správný způsob psaní kódu.
+
+    def load_schedule(self) -> None:
+        filename = filedialog.askopenfilename(defaultextension=".json",
+                                              filetypes=[("JSON file", ".json")])
+        with open(filename, 'rb') as file:
+            schedule = pickle.load(file)
+        self.schedules.append(schedule)
+        self.open_schedule(len(self.schedules)-1)
 
     def run(self) -> None:
         self.root.mainloop()
