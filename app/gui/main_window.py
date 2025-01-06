@@ -1,11 +1,14 @@
 import tkinter as tk
+from tkinter import filedialog
 import tkinter.ttk as ttk
 from typing import List
 from typing import Dict
 from enum import Enum
+from datetime import time
+from PIL import Image, ImageDraw, ImageTk
 from app.utils import config
 from app.utils import utilities
-from app.src.course import Course
+from app.src.lesson import Lesson
 from app.src.schedule import Schedule
 from app.gui.schedule_painter import SchedulePainter
 
@@ -15,12 +18,15 @@ class MainWindow():
         self.root = tk.Tk()
         self.root.title(config.main_window_name)
         self.root.geometry(config.main_window_initial_size)
+        self.current_screen_state = ScreenState.SCHEDULE_LIST_SHOWN
         self.initialize_menu()
         self.schedules: List[Schedule] = []
         self.schedules.append(Schedule("Rozvrh 1"))
+        course1 = Lesson("Matematika", "T-201", "Krbálek", time(hour=8, minute=30), time(hour=10, minute=30), (35, 125, 200))
+        self.schedules[0].lessons.append(course1)
         self.schedules.append(Schedule("Rozvrh 2"))
         self.schedules.append(Schedule("Rozvrh 3"))
-        self.painter = SchedulePainter(self.root)
+        self.painter = SchedulePainter()
 
         self.display_schedule_list()
 
@@ -30,11 +36,11 @@ class MainWindow():
         menu_bar.add_command(label="Rozvrhy", command=self.display_schedule_list)
 
         file_menu = tk.Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="Soubor", menu=file_menu)
         file_menu.add_command(label="Nový")
         file_menu.add_command(label="Otevřít")
-        file_menu.add_command(label="Uložit jako...")
+        file_menu.add_command(label="Uložit jako...", command=self.save_schedule_as)
         file_menu.add_command(label="Uložit")
-        menu_bar.add_cascade(label="Soubor", menu=file_menu)
 
         menu_bar.add_command(label="Nastavení", command=self.open_settings)
 
@@ -67,22 +73,57 @@ class MainWindow():
         width_entry = tk.Entry(wrapper_visuals)
         width_entry.insert(0, str(settings["schedule_width"]))
         width_entry.grid(row=0, column=1, padx=5, pady=5)
-        
+
         height_label = tk.Label(wrapper_visuals, text="Výška rozvrhu:")
         height_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
         height_entry = tk.Entry(wrapper_visuals)
         height_entry.insert(0, str(settings["schedule_height"]))
         height_entry.grid(row=1, column=1, padx=5, pady=5)
 
+        def switch_entries():
+            temp = height_entry.get()
+            height_entry.delete(0, tk.END)
+            height_entry.insert(0, width_entry.get())
+            width_entry.delete(0, tk.END)
+            width_entry.insert(0, temp)
         orientation_label = tk.Label(wrapper_visuals, text="Orientace rozvrhu")
         orientation_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
         wrapper_orientation = tk.Frame(wrapper_visuals)
         wrapper_orientation.grid(row=2, column=1, padx=5, pady=5)
         orientation = tk.StringVar(value=settings["schedule_orientation"])
-        horizontal_radio_button = tk.Radiobutton(wrapper_orientation, text="Horizontal", variable=orientation, value="horizontal")
-        vertical_radio_button = tk.Radiobutton(wrapper_orientation, text="Vertical", variable=orientation, value="vertical")
+        horizontal_radio_button = tk.Radiobutton(wrapper_orientation,
+                                                 text="Horizontal",
+                                                 variable=orientation,
+                                                 value="horizontal",
+                                                 command=switch_entries)
+        vertical_radio_button = tk.Radiobutton(wrapper_orientation,
+                                               text="Vertical",
+                                               variable=orientation,
+                                               value="vertical",
+                                               command=switch_entries)
         horizontal_radio_button.pack(anchor="w")
         vertical_radio_button.pack(anchor="w")
+
+        text_scale_label = tk.Label(wrapper_visuals, text="Škálování textu")
+        text_scale_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        text_scale = tk.DoubleVar(value=settings["text_scale"])
+        text_scale_scale = tk.Scale(wrapper_visuals,
+                                    from_=0.1,
+                                    to=3,
+                                    resolution=0.1,
+                                    variable=text_scale,
+                                    orient="horizontal")
+        text_scale_scale.grid(row=3, column=1, padx=5, pady=5)
+
+        """
+        text_font_label = tk.Label(wrapper_visuals, text="Font")
+        text_font_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        text_font = tk.StringVar(value=settings["text_font"])
+
+        text_font_combobox = ttk.Combobox(wrapper_visuals, textvariable=text_font, values=times, state="readonly")
+        text_font_combobox.grid(row=4, column=1, padx=5, pady=5)
+        """
+        # TODO: Vyřešit co s fonty.
 
         # times ie. start of the days, end of the days, days of the week
         wrapper_times = tk.Frame(settings_window)
@@ -92,7 +133,7 @@ class MainWindow():
         day_start_label.grid(row=0, column=0, sticky="w")
         start_time = tk.StringVar()
         start_time.set(settings["day_start"])
-        times = [f"{i:02}:{j:02}" for i in range(24) for j in (0, 30)]
+        times = [f"{i:02}:00" for i in range(24)]
         start_time_combobox = ttk.Combobox(wrapper_times, textvariable=start_time, values=times, state="readonly")
         start_time_combobox.grid(row=0, column=1)
 
@@ -129,8 +170,9 @@ class MainWindow():
             settings["day_start"] = start_time.get()
             settings["day_end"] = end_time.get()
             settings["days_in_week"] = 0
+            settings["text_scale"] = text_scale.get()
             settings["days_in_week"] = ""
-            for i, var in enumerate(days_variables):
+            for var in days_variables:
                 if var.get() == 1:
                     settings["days_in_week"] += "1"
                 else:
@@ -153,9 +195,7 @@ class MainWindow():
 
     def clear_window(self) -> None:
         for widget in self.root.winfo_children():
-            if widget.winfo_class() == "Canvas" or widget.winfo_class() == "Scrollbar":
-                widget.grid_forget()
-            elif widget.winfo_class() != "Menu":
+            if widget.winfo_class() != "Menu":
                 widget.destroy()
 
     def display_schedule_list(self) -> None:
@@ -209,21 +249,40 @@ class MainWindow():
         self.painter.draw()
 
     def show_schedule(self) -> None:
+        self.clear_window()
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_rowconfigure(1, weight=0)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_columnconfigure(1, weight=0)
 
-        self.painter.canvas.grid(row=0, column=0)
+        canvas = self.painter.get_canvas(self.root)
+        canvas.grid(row=0, column=0)
 
-        horizontal_scrollbar = tk.Scrollbar(self.root, orient="horizontal", command=self.painter.canvas.xview)
+        horizontal_scrollbar = tk.Scrollbar(self.root, orient="horizontal", command=canvas.xview)
         horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
-        vertical_scrollbar = tk.Scrollbar(self.root, orient="vertical", command=self.painter.canvas.yview)
+        vertical_scrollbar = tk.Scrollbar(self.root, orient="vertical", command=canvas.yview)
         vertical_scrollbar.grid(row=0, column=1, sticky="ns")
 
-        self.painter.canvas.configure(xscrollcommand=horizontal_scrollbar.set,
+        canvas.configure(xscrollcommand=horizontal_scrollbar.set,
                                    yscrollcommand=vertical_scrollbar.set,
-                                   scrollregion=(0, 0, int(self.painter.canvas.cget("width")), int(self.painter.canvas.cget("height"))))
+                                   scrollregion=(0, 0, int(canvas.cget("width")), int(canvas.cget("height"))))
+
+    def save_schedule_as(self) -> None:
+        if self.current_screen_state == ScreenState.SCHEDULE_LIST_SHOWN:
+            print("Error: No schedule chosen")
+            return
+            # TODO: Dodělat. Ať to vyhodí nějaké varovné dialogové okno třeba.
+
+        filename = filedialog.asksaveasfilename(defaultextension=".png",
+                                                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("PDF files", "*.pdf")],
+                                                initialfile="Rozvrh")
+        # TODO: Zkontrolovat, že tohle je správný způsob psaní kódu.
+        if filename:
+            if filename.endswith(".pdf"):
+                self.painter.image.save(filename, "PDF")
+            else:
+                self.painter.image.save(filename)
+        # TODO: Přidat další formáty, pro zpětné načtení
 
     def run(self) -> None:
         self.root.mainloop()

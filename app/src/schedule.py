@@ -1,14 +1,14 @@
 from typing import List
-from app.src.course import Course
+from app.src.lesson import Lesson
 
 class Schedule:
     def __init__(self, name):
         self.name = name
-        self.courses: List[Course] = []
+        self.lessons: List[Lesson] = []
 
-    def add_course(self, course: Course) -> None:
-        self.courses.append(course)
+    def add_lesson(self, lesson: Lesson) -> None:
+        self.lessons.append(lesson)
 
-    def remove_course(self, course: Course) -> None:
+    def remove_lesson(self, lesson: Lesson) -> None:
         print("Not yet ready")
         # TODO: Finish this function

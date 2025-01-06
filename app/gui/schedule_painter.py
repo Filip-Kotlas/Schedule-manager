@@ -1,31 +1,39 @@
 import tkinter as tk
-from tkinter.ttk import *
+from PIL import Image, ImageDraw, ImageTk, ImageFont
+from typing import Tuple
+from datetime import time
 from app.utils import config
 from app.utils import utilities
-from app.src.course import Course
+from app.src.lesson import Lesson
 from app.src.schedule import Schedule
 import json
 from pathlib import Path
+import math
 
 
 class SchedulePainter():
 
-    def __init__(self, parent_widget):
-        settings = utilities.load_settings()      
-        self.canvas = tk.Canvas(parent_widget, bg="grey", width=settings["schedule_width"], height=settings["schedule_height"])
-        self.orientation = settings["schedule_orientation"]
+    def __init__(self):
+        self.settings = utilities.load_settings()
+        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
+        self.tk_image = ImageTk.PhotoImage(self.image)
+        self.orientation = self.settings["schedule_orientation"]
+        self.font = self.settings["text_font"]
+        self.bold_font = self.settings["text_bold_font"]
         self.active_schedule = None
 
-    def update(self):
-        settings = utilities.load_settings()
-        self.canvas.config(width=settings["schedule_width"], height=settings["schedule_height"])
-        self.orientation = settings["schedule_orientation"]
-    
-    def change_schedule(self, schedule: Schedule):
+    def update(self) -> None:
+        self.settings = utilities.load_settings()
+        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
+        self.orientation = self.settings["schedule_orientation"]
+        self.font = self.settings["text_font"]
+        self.bold_font = self.settings["text_bold_font"]
+
+    def change_schedule(self, schedule: Schedule) -> None:
         self.active_schedule = schedule
         # TODO: Možná přidat kontrolu typu. A to i jinde.
 
-    def draw(self):
+    def draw(self) -> None:
         if self.orientation == "horizontal":
             self.draw_horizontal()
         elif self.orientation == "vertical":
@@ -34,12 +42,181 @@ class SchedulePainter():
             print("Error: Wrong orientation")
             # TODO: Raise exception.
 
-    def draw_horizontal(self):
-        self.canvas.create_line(0, 0, 200, 200, fill="red")
+    def draw_horizontal(self) -> None:
+        draw = ImageDraw.Draw(self.image)
+        base_rectangle, cell_dimension = self.draw_horizontal_background(draw)
+
+        self.draw_lesson_horizontal(draw,
+                                    self.active_schedule.lessons[0],
+                                    base_rectangle[0],
+                                    base_rectangle[1],
+                                    cell_dimension[0],
+                                    cell_dimension[1])
+        #self.draw_course(draw, self.active_schedule.courses[0], 200, 100, 100, 50)
         # TODO: Finish
 
-    def draw_vertical(self):
-        self.canvas.pack(fill='none', expand=False)
+    def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        line_width = int(general_size * config.line_width_factor)
+        text_size = int(general_size * config.text_size_factor * self.settings["text_scale"])
+        text_padding = int(general_size * config.text_padding_factor * self.settings["text_scale"])
+        schedule_padding = int(general_size * config.schedule_padding_factor)
+        side_offset = int(general_size * config.side_offset_factor)
+        left_side_offset = int(general_size * config.left_side_offset_factor)
+
+        start_hour = int(self.settings["day_start"][0:2])
+        end_hour = int(self.settings["day_end"][0:2])
+        if end_hour <= start_hour:
+            end_hour += 24
+        column_number = end_hour - start_hour
+        row_number = self.settings["days_in_week"].count("1")
+        #TODO: Přidat vyjímku
+
+        cell_width = (self.settings["schedule_width"] - 2*schedule_padding - left_side_offset - side_offset) / float(column_number)
+        cell_height = (self.settings["schedule_height"] - 2*schedule_padding - text_size - text_padding - 2*side_offset) / float(row_number)
+        base_rectangle_coor = (schedule_padding + left_side_offset,
+                               schedule_padding + text_size + text_padding + side_offset,
+                               self.settings["schedule_width"] - schedule_padding - side_offset,
+                               self.settings["schedule_height"] - schedule_padding - side_offset)
+
+        text_font = ImageFont.truetype(self.bold_font, text_size)
+        draw.text((schedule_padding, schedule_padding), text=self.active_schedule.name, fill="black", font=text_font, anchor="lt")
+        text_font = ImageFont.truetype(self.font, text_size)
+
+        increment = 0
+        for hour in (f"{i%24}:00" for i in range(start_hour, end_hour + 1)):
+            x1 = schedule_padding + left_side_offset + increment*cell_width
+            y1 = schedule_padding + text_size + text_padding
+            x2 = x1
+            y2 = self.settings["schedule_height"] - schedule_padding
+            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+            draw.text((x1, schedule_padding + text_size/2), text=hour, fill="black", font=text_font, anchor="mm")
+            increment += 1
+
+        days_in_week = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
+        selected_days = (day for char, day in zip(self.settings["days_in_week"], days_in_week) if char == "1")
+        increment = 0
+        for day in selected_days:
+            x1 = schedule_padding
+            y1 = schedule_padding + text_size + text_padding + side_offset + increment*cell_height
+            x2 = self.settings["schedule_width"] - schedule_padding
+            y2 = y1
+            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+            draw.text((x1, y1 + cell_height/2), text=day, fill="black", font=text_font, anchor="lm")
+            increment += 1
+        y1 = schedule_padding + text_size + text_padding + side_offset + increment*cell_height
+        y2 = y1
+        draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+
+        return (base_rectangle_coor, (cell_width, cell_height))
+
+    def draw_vertical(self) -> None:
+        draw = ImageDraw.Draw(self.image)
+        self.draw_vertical_background(draw)
+        #self.draw_course(draw, self.active_schedule.courses[0], 200, 100, 100, 50)
         # TODO: Finish
 
+    def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        line_width = int(general_size * config.line_width_factor)
+        text_size = int(general_size * config.text_size_factor * self.settings["text_scale"])
+        text_padding = int(general_size * config.text_padding_factor * self.settings["text_scale"])
+        schedule_padding = int(general_size * config.schedule_padding_factor)
+        side_offset = int(general_size * config.side_offset_factor)
+        top_side_offset = int(general_size * config.top_side_offset_factor)
 
+        start_hour = int(self.settings["day_start"][0:2])
+        end_hour = int(self.settings["day_end"][0:2])
+        if end_hour <= start_hour:
+            end_hour += 24
+        row_number = end_hour - start_hour
+        column_number = self.settings["days_in_week"].count("1")
+        #TODO: Přidat vyjímku
+
+        text_font = ImageFont.truetype(self.bold_font, text_size)
+        draw.text((schedule_padding, schedule_padding), text=self.active_schedule.name, fill="black", font=text_font, anchor="lt")
+        text_font = ImageFont.truetype(self.font, text_size)
+
+        times = [f"{i%24}:00" for i in range(start_hour, end_hour + 1)]
+        time_text_length = max((text_font.getlength(time) for time in times))
+
+        cell_width = (self.settings["schedule_width"]
+                      - 2*schedule_padding
+                      - time_text_length
+                      - text_padding
+                      - 2*side_offset) / float(column_number)
+        cell_height = (self.settings["schedule_height"]
+                       - 2*schedule_padding
+                       - text_size
+                       - text_padding
+                       - top_side_offset
+                       - side_offset) / float(row_number)
+        base_rectangle_coor = (schedule_padding + time_text_length + text_padding + side_offset,
+                               schedule_padding + top_side_offset + text_size + text_padding,
+                               self.settings["schedule_width"] - schedule_padding - side_offset,
+                               self.settings["schedule_height"] - schedule_padding - side_offset)
+
+        increment = 0
+        for hour in times:
+            x1 = schedule_padding + time_text_length + text_padding
+            y1 = schedule_padding + top_side_offset + text_size + text_padding + increment*cell_height
+            x2 = self.settings["schedule_width"] - schedule_padding
+            y2 = y1
+            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+            draw.text((schedule_padding + time_text_length/2, y1), text=hour, fill="black", font=text_font, anchor="mm")
+            increment += 1
+
+        days_in_week = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"]
+        selected_days = (day for char, day in zip(self.settings["days_in_week"], days_in_week) if char == "1")
+        increment = 0
+        for day in selected_days:
+            x1 = schedule_padding + time_text_length + text_padding + side_offset + increment*cell_width
+            y1 = schedule_padding
+            x2 = x1
+            y2 = self.settings["schedule_height"] - schedule_padding
+            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+            draw.text((x1 + cell_width/2, y1 + top_side_offset + text_size/2), text=day, fill="black", font=text_font, anchor="mm")
+            increment += 1
+        x1 = schedule_padding + time_text_length + text_padding + side_offset + increment*cell_width
+        x2 = x1
+        draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+
+        return (base_rectangle_coor, (cell_width, cell_height))
+
+    def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, hour_width: int, day_height: int) -> None:
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
+        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.end_time.minute
+        name_text_size = day_height//5
+        line_width = int(general_size * config.line_width_factor)
+
+        draw.rectangle([x, y, x + hour_width*duration/60.0, y + day_height],
+                       fill=lesson.color,
+                       outline=darker_color,
+                       width=line_width)
+        draw.rectangle([x, y + config.lesson_upper_part_ratio*day_height, x + hour_width*duration/60.0, y + day_height],
+                       fill="white",
+                       outline=lesson.color,
+                       width=line_width)
+        draw.line([x+line_width,
+                   y + config.lesson_upper_part_ratio*day_height + (line_width-1)//2,
+                   x + hour_width*duration/60.0 - line_width,
+                   y + config.lesson_upper_part_ratio*day_height + (line_width-1)//2],
+                  fill="white",
+                  width=line_width)
+        print(line_width)
+        text_font = ImageFont.truetype(self.font, name_text_size)
+        # TODO: Změnit velikost textu aby byla závislá na dostupném místě.
+        # TODO: Umožnit volbu fontu
+        draw.text((x + hour_width*duration/60.0/2, y + config.lesson_upper_part_ratio*day_height/2),
+                  lesson.name,
+                  fill="black",
+                  font=text_font,
+                  anchor="mm")
+
+    def get_canvas(self, parent_widget) -> tk.Canvas:
+        canvas = tk.Canvas(parent_widget, width=self.settings["schedule_width"], height=self.settings["schedule_height"], background="red")
+        self.tk_image = ImageTk.PhotoImage(self.image)
+        canvas.delete("all")
+        canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
+        return canvas
