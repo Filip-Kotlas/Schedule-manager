@@ -19,3 +19,6 @@ class Schedule:
     def save_to_json_file(self, filename: str) -> None:
         with open(filename, 'wb') as file:
             pickle.dump(self, file)
+
+    def rename(self, new_name: str):
+        self.name = new_name

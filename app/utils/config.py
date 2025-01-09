@@ -1,6 +1,6 @@
 main_window_name = "Rozvrhář"
-main_window_initial_size = "800x600"
-lesson_window_initial_size = "600x400"
+main_window_initial_size = (800, 600)
+lesson_window_initial_size = (600, 400)
 
 bg_line_width_factor = 1.0 / 500
 bg_text_size_factor = 1.0 / 80

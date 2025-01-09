@@ -15,7 +15,9 @@ from app.src.schedule import Schedule
 class LessonForm():
     def __init__(self, parent_window: tk.Tk, lesson: Lesson=None):
         self.window = tk.Toplevel(parent_window)
+        self.window.geometry(f"+{self.window.winfo_screenwidth()//4}+{self.window.winfo_screenheight()//8}")
         self.window.resizable(False, False)
+        self.window.focus_set()
         self.window.grab_set()
         self.window.transient(parent_window)
         if lesson is None:
@@ -36,6 +38,7 @@ class LessonForm():
                                  "end_time_hour": tk.StringVar(value=lesson.end_time.strftime("%H")),
                                  "end_time_minute": tk.StringVar(value=lesson.end_time.strftime("%M")),
                                  "color": tk.StringVar(value=lesson.get_hex_color())}
+        self.window.bind("<Return>", func=lambda event: self.save_lesson())
 
     def run(self) -> Lesson:
         self.add_widgets()

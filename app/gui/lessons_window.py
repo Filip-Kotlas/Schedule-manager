@@ -9,10 +9,11 @@ from app.src.schedule import Schedule
 from app.gui.lesson_form import LessonForm
 
 class LessonsWindow:
-    def __init__(self, parent_window, schedule: Schedule):
+    def __init__(self, parent_window: tk.Tk, schedule: Schedule):
         self.window = tk.Toplevel(parent_window)
-        self.window.geometry(config.lesson_window_initial_size)
+        self.set_window_geometry()
         self.window.title("Hodiny")
+        self.window.focus_set()
         self.window.grab_set()
         self.window.transient(parent_window)
         self.schedule = schedule
@@ -20,7 +21,15 @@ class LessonsWindow:
 
         self.add_widgets()
 
+        self.window.bind("<Return>", func=lambda event: self.close())
+
         parent_window.wait_window(self.window)
+
+    def set_window_geometry(self):
+        x_offset = (self.window.winfo_screenwidth() - config.lesson_window_initial_size[0])//4*3
+        y_offset = (self.window.winfo_screenheight() - config.lesson_window_initial_size[1])//2
+        geometry = f"{config.lesson_window_initial_size[0]}x{config.lesson_window_initial_size[1]}+{x_offset}+{y_offset}"
+        self.window.geometry(geometry)
 
     def add_widgets(self):
         self.tree.pack(fill="both", expand=True, pady=(10, 0))
