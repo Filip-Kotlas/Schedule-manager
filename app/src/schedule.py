@@ -10,9 +10,11 @@ class Schedule:
     def add_lesson(self, lesson: Lesson) -> None:
         self.lessons.append(lesson)
 
-    def remove_lesson(self, lesson: Lesson) -> None:
-        print("Not yet ready")
-        # TODO: Finish this function
+    def edit_lesson(self, index: int, new_lesson: Lesson) -> None:
+        self.lessons[index] = new_lesson
+
+    def remove_lesson(self, index: int) -> None:
+        self.lessons.pop(index)
 
     def save_to_json_file(self, filename: str) -> None:
         with open(filename, 'wb') as file:

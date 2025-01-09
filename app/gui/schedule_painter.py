@@ -33,28 +33,38 @@ class SchedulePainter():
         # TODO: Možná přidat kontrolu typu. A to i jinde.
 
     def draw(self) -> None:
+        draw = ImageDraw.Draw(self.image)
+        draw.rectangle((0, 0, self.settings["schedule_width"], self.settings["schedule_height"]), fill="white")
+
         if self.orientation == "horizontal":
-            self.draw_horizontal()
+            self.draw_horizontal(draw)
         elif self.orientation == "vertical":
-            self.draw_vertical()
+            self.draw_vertical(draw)
         else:
             print("Error: Wrong orientation")
             # TODO: Raise exception.
 
-    def draw_horizontal(self) -> None:
-        draw = ImageDraw.Draw(self.image)
-        base_rectangle, cell_dimension = self.draw_horizontal_background(draw)
+    def draw_horizontal(self, draw: ImageDraw.ImageDraw) -> None:
+        base_origin, cell_dimension = self.draw_horizontal_background(draw)
 
-        self.draw_lesson_horizontal(draw,
-                                    self.active_schedule.lessons[0],
-                                    base_rectangle[0],
-                                    base_rectangle[1],
-                                    cell_dimension[0],
-                                    cell_dimension[1])
-        #self.draw_course(draw, self.active_schedule.courses[0], 200, 100, 100, 50)
+        for lesson in self.active_schedule.lessons:
+            time_delta = lesson.start_time.hour * 60 \
+                        + lesson.start_time.minute \
+                        - int(self.settings["day_start"][:2])*60 \
+                        - int(self.settings["day_start"][3:5])
+            days_before = sum((int(char) for char in self.settings["days_in_week"][:lesson.day.value]))
+
+            x_offset = int(time_delta / 60 * cell_dimension[0])
+            y_offset = days_before * cell_dimension[1]
+            self.draw_lesson_horizontal(draw,
+                                        lesson,
+                                        base_origin[0] + x_offset,
+                                        base_origin[1] + y_offset,
+                                        cell_dimension[0],
+                                        cell_dimension[1])
         # TODO: Finish
 
-    def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
+    def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
         line_width = int(general_size * config.bg_line_width_factor)
         text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
@@ -73,10 +83,8 @@ class SchedulePainter():
 
         cell_width = (self.settings["schedule_width"] - 2*schedule_padding - left_side_offset - side_offset) / float(column_number)
         cell_height = (self.settings["schedule_height"] - 2*schedule_padding - text_size - text_padding - 2*side_offset) / float(row_number)
-        base_rectangle_coor = (schedule_padding + left_side_offset,
-                               schedule_padding + text_size + text_padding + side_offset,
-                               self.settings["schedule_width"] - schedule_padding - side_offset,
-                               self.settings["schedule_height"] - schedule_padding - side_offset)
+        base_origin = (schedule_padding + left_side_offset,
+                       schedule_padding + text_size + text_padding + side_offset)
 
         text_font = ImageFont.truetype(self.bold_font, text_size)
         draw.text((schedule_padding, schedule_padding), text=self.active_schedule.name, fill="black", font=text_font, anchor="lt")
@@ -107,12 +115,12 @@ class SchedulePainter():
         y2 = y1
         draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
 
-        return (base_rectangle_coor, (cell_width, cell_height))
+        return (base_origin, (cell_width, cell_height))
 
     def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, hour_width: int, day_height: int) -> None:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
         darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
-        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.end_time.minute
+        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.start_time.minute
         outline_width = int(general_size * config.lssn_outline_width_factor)
 
         draw.rectangle([x, y, x + hour_width*duration/60.0, y + day_height],
@@ -171,19 +179,26 @@ class SchedulePainter():
                    fill="black",
                    anchor="rm")
 
-    def draw_vertical(self) -> None:
-        draw = ImageDraw.Draw(self.image)
-        base_rectangle, cell_dimension = self.draw_vertical_background(draw)
-        
-        self.draw_lesson_vertical(draw,
-                                    self.active_schedule.lessons[0],
-                                    base_rectangle[0],
-                                    base_rectangle[1],
-                                    cell_dimension[0],
-                                    cell_dimension[1])
-        # TODO: Finish
+    def draw_vertical(self, draw: ImageDraw.ImageDraw) -> None:
+        base_origin, cell_dimension = self.draw_vertical_background(draw)
 
-    def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int, int, int], Tuple[float, float]]:
+        for lesson in self.active_schedule.lessons:
+            time_delta = lesson.start_time.hour * 60 \
+                        + lesson.start_time.minute \
+                        - int(self.settings["day_start"][:2])*60 \
+                        - int(self.settings["day_start"][3:5])
+            days_before = sum((int(char) for char in self.settings["days_in_week"][:lesson.day.value]))
+
+            x_offset = days_before * cell_dimension[0]
+            y_offset = int(time_delta / 60 * cell_dimension[1])
+            self.draw_lesson_vertical(draw,
+                                        lesson,
+                                        base_origin[0] + x_offset,
+                                        base_origin[1] + y_offset,
+                                        cell_dimension[0],
+                                        cell_dimension[1])
+
+    def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
         line_width = int(general_size * config.bg_line_width_factor)
         text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
@@ -218,10 +233,9 @@ class SchedulePainter():
                        - text_padding
                        - top_side_offset
                        - side_offset) / float(row_number)
-        base_rectangle_coor = (schedule_padding + time_text_length + text_padding + side_offset,
-                               schedule_padding + top_side_offset + text_size + text_padding,
-                               self.settings["schedule_width"] - schedule_padding - side_offset,
-                               self.settings["schedule_height"] - schedule_padding - side_offset)
+        # TODO: Okomentovat, co to znamená
+        base_origin = (schedule_padding + time_text_length + text_padding + side_offset,
+                       schedule_padding + top_side_offset + text_size + text_padding)
 
         increment = 0
         for hour in times:
@@ -248,12 +262,12 @@ class SchedulePainter():
         x2 = x1
         draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
 
-        return (base_rectangle_coor, (cell_width, cell_height))
+        return (base_origin, (cell_width, cell_height))
 
     def draw_lesson_vertical(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, day_width: int, hour_height: int) -> None:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
         darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
-        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.end_time.minute
+        duration = lesson.end_time.hour * 60 + lesson.end_time.minute - lesson.start_time.hour * 60 - lesson.start_time.minute
         outline_width = int(general_size * config.lssn_outline_width_factor)
 
         draw.rectangle([x, y, x + day_width, y + hour_height*duration/60.0],
