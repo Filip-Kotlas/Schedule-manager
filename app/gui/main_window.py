@@ -18,7 +18,7 @@ class MainWindow():
 
     def __init__(self):
         self.window = tk.Tk()
-        self.window.title(config.main_window_name)
+        self.window.title("Rozvrhář")
         self.set_window_geometry()
         self.current_screen_state = utilities.ScreenState.SCHEDULE_LIST_SHOWN
         self.initialize_menu()
@@ -34,9 +34,9 @@ class MainWindow():
         
         Sets the window to be in the middle of the screen.
         """
-        x_offset = (self.window.winfo_screenwidth() - config.main_window_initial_size[0])//2
-        y_offset = (self.window.winfo_screenheight() - config.main_window_initial_size[1])//2
-        geometry = f"{config.main_window_initial_size[0]}x{config.main_window_initial_size[1]}+{x_offset}+{y_offset}"
+        x_offset = (self.window.winfo_screenwidth() - config.MAIN_WINDOW_INITIAL_SIZE[0])//2
+        y_offset = (self.window.winfo_screenheight() - config.MAIN_WINDOW_INITIAL_SIZE[1])//2
+        geometry = f"{config.MAIN_WINDOW_INITIAL_SIZE[0]}x{config.MAIN_WINDOW_INITIAL_SIZE[1]}+{x_offset}+{y_offset}"
         self.window.geometry(geometry)
 
     def initialize_menu(self) -> None:

@@ -1,12 +1,13 @@
+"""Contains a class for settings window."""
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from app.utils import utilities
 
-# TODO: Vymazat všude nepotřebné importy.
-
 class SettingsWindow():
-    def __init__(self, parent_window: tk.Tk):
+    """Settings window."""
+
+    def __init__(self, parent_window: tk.Tk) -> None:
         self.window = tk.Toplevel(parent_window)
         self.window.title("Nastavení")
         self.window.resizable(False, False)
@@ -33,7 +34,8 @@ class SettingsWindow():
 
         parent_window.wait_window(self.window)
 
-    def add_visual_settings(self):
+    def add_visual_settings(self) -> None:
+        """Adds widgets concerning outlook of the schedules to the window."""
         wrapper_visuals = tk.Frame(self.window)
         wrapper_visuals.grid(row=0, column=0, padx=10, pady=10)
 
@@ -75,11 +77,13 @@ class SettingsWindow():
         text_scale_scale.grid(row=3, column=1, padx=5, pady=5)
 
     def switch_width_height(self):
+        """Switches values of variables for the height and the width of the schedules."""
         temp = self.widget_variables["height"].get()
         self.widget_variables["height"].set(self.widget_variables["width"].get())
         self.widget_variables["width"].set(temp)
 
     def add_time_settings(self):
+        """Adds widgets concerning days and times of the schedules to the window."""
         wrapper_times = tk.Frame(self.window)
         wrapper_times.grid(row=0, column=1, padx=10, pady=10)
 
@@ -118,6 +122,12 @@ class SettingsWindow():
             day_check_button.pack()
 
     def save_settings(self) -> None:
+        """
+        Saves the inputs to the settings.json file.
+
+        Checks whether the inputs are correct. If not, it shows a warning dialog window. If yes it
+        saves the inputs to the settings.json file and closes the settings window.
+        """
         if not str.isdigit(self.widget_variables["width"].get())  or not str.isdigit(self.widget_variables["height"].get()):
             messagebox.showwarning(title="Nesprávné rozměry", message="Rozměry rozvrhu musí být zadány jako celá kladná čísla.")
             return
@@ -143,4 +153,5 @@ class SettingsWindow():
         self.close()
 
     def close(self) -> None:
+        """Closes the settings window."""
         self.window.destroy()

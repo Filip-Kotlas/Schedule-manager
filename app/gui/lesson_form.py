@@ -1,19 +1,15 @@
+"""Contains a class for lesson form window."""
 import tkinter as tk
 from tkinter import colorchooser
-from tkinter import simpledialog
-from tkinter import filedialog
-from tkinter import messagebox
 from tkinter import ttk
-from typing import List
-from typing import Dict
 from datetime import time
-from app.utils import config
 from app.utils import utilities
 from app.src.lesson import Lesson
-from app.src.schedule import Schedule
 
 class LessonForm():
-    def __init__(self, parent_window: tk.Tk, lesson: Lesson=None):
+    """The lesson form window."""
+
+    def __init__(self, parent_window: tk.Tk, lesson: Lesson=None) -> None:
         self.window = tk.Toplevel(parent_window)
         self.window.geometry(f"+{self.window.winfo_screenwidth()//4}+{self.window.winfo_screenheight()//8}")
         self.window.resizable(False, False)
@@ -41,11 +37,19 @@ class LessonForm():
         self.window.bind("<Return>", func=lambda event: self.save_lesson())
 
     def run(self) -> Lesson:
+        """
+        Launches the lesson form window.
+        
+        Returns:
+            Lesson: New lesson or None if no lesson has been passed to the object during
+                initialization and the form was closed without saving.
+        """
         self.add_widgets()
         self.window.master.wait_window(self.window)
         return self.new_lesson
 
-    def add_widgets(self):
+    def add_widgets(self) -> None:
+        """Adds widgets to the lesson form window."""
         self.add_names_widgets()
         self.add_time_widgets()
         self.add_color_widgets()
@@ -53,7 +57,8 @@ class LessonForm():
         save_button = tk.Button(self.window, text="Uložit", command=self.save_lesson)
         save_button.grid(row=7, columnspan=2, pady=10)
 
-    def add_names_widgets(self):
+    def add_names_widgets(self) -> None:
+        """Adds widgets concerning name, place and instructor to the lesson form window."""
         name_label = tk.Label(self.window, text="Jméno")
         name_entry = tk.Entry(self.window, textvariable=self.widget_variables["name"])
         name_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
@@ -69,7 +74,8 @@ class LessonForm():
         instructor_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
         instructor_entry.grid(row=2, column=1, padx=10, pady=5)
 
-    def add_time_widgets(self):
+    def add_time_widgets(self) -> None:
+        """Adds widgets concerning day, start time and end time to the lesson form window."""
         day_label = tk.Label(self.window, text="Den")
         day_options = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
         day_combobox = ttk.Combobox(self.window, textvariable=self.widget_variables["day"], values=day_options, state="readonly" )
@@ -119,9 +125,9 @@ class LessonForm():
         end_time_hour_spinbox.pack(side="left", padx=(5, 0))
         end_time_colon_label.pack(side="left", padx = 5)
         end_time_minute_spinbox.pack(side="left", padx = (0, 5))
-        #TODO: Přidat nějakou kontrolu těch časů.
 
-    def add_color_widgets(self):
+    def add_color_widgets(self) -> None:
+        """Adds widgets concerning color to the lesson form window."""
         color_label = tk.Label(self.window, text="Barva")
         color_wrapper = tk.Frame(self.window)
         current_color_canvas = tk.Canvas(color_wrapper,
@@ -136,12 +142,31 @@ class LessonForm():
         current_color_canvas.pack(side="left", padx=10)
         choose_color_button.pack(side="left", padx=10)
 
-    def choose_color(self, color_canvas: tk.Canvas):
+    def choose_color(self, color_canvas: tk.Canvas) -> None:
+        """
+        Creates a dialog window for choosing a color.
+
+        Creates a dialog window for color choosing. If the color is chosen, it changes the color of
+        the passed canvas. Otherwise it sets the color to red (#FF0000).
+
+        Args:
+            color_canvas (tk.Canvas): Canvas to be colored based on the choice of the color.
+        """
         color = colorchooser.askcolor(title="Vybrat barvu")
-        self.widget_variables["color"].set(color[1])
-        color_canvas.configure(bg=color[1])
+
+        if color is not None:
+            self.widget_variables["color"].set(color[1])
+            color_canvas.configure(bg=color[1])
+        else:
+            self.widget_variables["color"].set("#FF0000")
+            color_canvas.configure(bg="#FF0000")
 
     def save_lesson(self) -> None:
+        """
+        Saves the inputs to the new lesson.
+        
+        Saves the inputs to the new lesson and than closes the lesson form window.
+        """
         self.new_lesson = Lesson()
         self.new_lesson.name = self.widget_variables["name"].get()
         self.new_lesson.place = self.widget_variables["place"].get()
@@ -156,4 +181,5 @@ class LessonForm():
         self.close()
 
     def close(self):
+        """Closes the lesson form window."""
         self.window.destroy()

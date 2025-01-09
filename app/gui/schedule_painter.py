@@ -81,12 +81,12 @@ class SchedulePainter():
 
     def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.bg_line_width_factor)
-        text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
-        text_padding = int(general_size * config.bg_text_padding_factor * self.settings["text_scale"])
-        schedule_padding = int(general_size * config.schedule_padding_factor)
-        side_offset = int(general_size * config.side_offset_factor)
-        left_side_offset = int(general_size * config.left_side_offset_factor)
+        line_width = int(general_size * config.BG_LINE_WIDTH_FACTOR)
+        text_size = int(general_size * config.BG_TEXT_SIZE_FACTOR * self.settings["text_scale"])
+        text_padding = int(general_size * config.BG_TEXT_PADDING_FACTOR * self.settings["text_scale"])
+        schedule_padding = int(general_size * config.BG_SCHEDULE_PADDING_FACTOR)
+        side_offset = int(general_size * config.BG_SIDE_OFFSET_FACTOR)
+        left_side_offset = int(general_size * config.BG_LEFT_SIDE_OFFSET_FACTOR)
 
         start_hour = int(self.settings["day_start"][0:2])
         end_hour = int(self.settings["day_end"][0:2])
@@ -134,27 +134,27 @@ class SchedulePainter():
 
     def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, width: int, height: int) -> None:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
-        outline_width = int(general_size * config.lssn_outline_width_factor)
+        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
+        outline_width = int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR)
 
         draw.rectangle([x, y, x + width, y + height],
                        fill=lesson.color,
                        outline=darker_color,
                        width=outline_width)
-        draw.rectangle([x, y + config.lssn_upper_part_ratio*height, x + width, y + height],
+        draw.rectangle([x, y + config.LSSN_UPPER_PART_RATIO*height, x + width, y + height],
                        fill="white",
                        outline=lesson.color,
                        width=outline_width)
         draw.line([x+outline_width,
-                   y + config.lssn_upper_part_ratio*height + (outline_width-1)//2,
+                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2,
                    x + width - outline_width,
-                   y + config.lssn_upper_part_ratio*height + (outline_width-1)//2],
+                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2],
                   fill="white",
                   width=outline_width)
 
-        text_size = int(height*config.lssn_upper_part_ratio*config.lssn_name_text_ratio)
-        text_padding = int(general_size*config.lssn_text_padding_factor)
-        text_outline_width = int(max(text_size*config.lssn_text_outline_width_factor, 1))
+        text_size = int(height*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO)
+        text_padding = int(general_size*config.LSSN_TEXT_PADDING_FACTOR)
+        text_outline_width = int(max(text_size*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
         text_font = ImageFont.truetype(self.font, max(text_size, 1))
         while text_font.getlength(lesson.name) > width - 2*outline_width - 2*text_padding and text_size > 1:
             text_size -= 1
@@ -162,7 +162,7 @@ class SchedulePainter():
         # TODO: Změnit velikost textu, aby byla závislá na dostupném místě (a to i šířce).
         # TODO: Umožnit volbu fontu
         mid_x = x + width/2
-        mid_y = y + config.lssn_upper_part_ratio*height/2
+        mid_y = y + config.LSSN_UPPER_PART_RATIO*height/2
         for dx in range(-text_outline_width, text_outline_width + 1):
             for dy in range(-text_outline_width, text_outline_width + 1):
                 draw.text((mid_x + dx, mid_y + dy),
@@ -175,19 +175,19 @@ class SchedulePainter():
                   fill="black",
                   font=text_font,
                   anchor="mm")
-        text_size = int(height*(1-config.lssn_upper_part_ratio)*config.lssn_info_text_ratio)
+        text_size = int(height*(1-config.LSSN_UPPER_PART_RATIO)*config.LSSN_INFO_TEXT_RATIO)
         text_font = ImageFont.truetype(self.font, max(1, text_size))
         while text_font.getlength(lesson.instructor + "  " + lesson.place) > width - 2*outline_width - 2*text_padding and text_size > 1:
             text_size -= 1
             text_font = ImageFont.truetype(self.font, text_size)
         draw.text((x + outline_width + text_padding,
-                   y + (1 + config.lssn_upper_part_ratio)/2*height - outline_width/2),
+                   y + (1 + config.LSSN_UPPER_PART_RATIO)/2*height - outline_width/2),
                    text=lesson.instructor,
                    font=text_font,
                    fill="black",
                    anchor="lm")
         draw.text((x + width - outline_width - text_padding,
-                   y + (1 + config.lssn_upper_part_ratio)/2*height - outline_width/2),
+                   y + (1 + config.LSSN_UPPER_PART_RATIO)/2*height - outline_width/2),
                    text=lesson.place,
                    font=text_font,
                    fill="black",
@@ -230,12 +230,12 @@ class SchedulePainter():
 
     def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.bg_line_width_factor)
-        text_size = int(general_size * config.bg_text_size_factor * self.settings["text_scale"])
-        text_padding = int(general_size * config.bg_text_padding_factor * self.settings["text_scale"])
-        schedule_padding = int(general_size * config.schedule_padding_factor)
-        side_offset = int(general_size * config.side_offset_factor)
-        top_side_offset = int(general_size * config.top_side_offset_factor)
+        line_width = int(general_size * config.BG_LINE_WIDTH_FACTOR)
+        text_size = int(general_size * config.BG_TEXT_SIZE_FACTOR * self.settings["text_scale"])
+        text_padding = int(general_size * config.BG_TEXT_PADDING_FACTOR * self.settings["text_scale"])
+        schedule_padding = int(general_size * config.BG_SCHEDULE_PADDING_FACTOR)
+        side_offset = int(general_size * config.BG_SIDE_OFFSET_FACTOR)
+        top_side_offset = int(general_size * config.BG_TOP_SIDE_OFFSET_FACTOR)
 
         start_hour = int(self.settings["day_start"][0:2])
         end_hour = int(self.settings["day_end"][0:2])
@@ -296,34 +296,34 @@ class SchedulePainter():
 
     def draw_lesson_vertical(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, width: int, height: int) -> None:
         general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        darker_color = tuple(int(component*config.color_darkening_factor) for component in lesson.color)
-        outline_width = int(general_size * config.lssn_outline_width_factor)
+        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
+        outline_width = int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR)
 
         draw.rectangle([x, y, x + width, y + height],
                        fill=lesson.color,
                        outline=darker_color,
                        width=outline_width)
-        draw.rectangle([x, y + config.lssn_upper_part_ratio*height, x + width, y + height],
+        draw.rectangle([x, y + config.LSSN_UPPER_PART_RATIO*height, x + width, y + height],
                        fill="white",
                        outline=lesson.color,
                        width=outline_width)
         draw.line([x+outline_width,
-                   y + config.lssn_upper_part_ratio*height + (outline_width-1)//2,
+                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2,
                    x + width - outline_width,
-                   y + config.lssn_upper_part_ratio*height + (outline_width-1)//2],
+                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2],
                   fill="white",
                   width=outline_width)
 
-        text_size = int(width*config.lssn_upper_part_ratio*config.lssn_name_text_ratio)
-        text_padding = int(general_size*config.lssn_text_padding_factor)
-        text_outline_width = int(max(text_size*config.lssn_text_outline_width_factor, 1))
+        text_size = int(width*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO)
+        text_padding = int(general_size*config.LSSN_TEXT_PADDING_FACTOR)
+        text_outline_width = int(max(text_size*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
         text_font = ImageFont.truetype(self.font, max(1, text_size))
         while text_font.getlength(lesson.name) > width - 2*outline_width - 2*text_padding and text_size > 1:
             text_size -= 1
             text_font = ImageFont.truetype(self.font, text_size)
 
         mid_x = x + width/2
-        mid_y = y + config.lssn_upper_part_ratio*height/2
+        mid_y = y + config.LSSN_UPPER_PART_RATIO*height/2
         for dx in range(-text_outline_width, text_outline_width + 1):
             for dy in range(-text_outline_width, text_outline_width + 1):
                 draw.text((mid_x + dx, mid_y + dy),
@@ -336,7 +336,7 @@ class SchedulePainter():
                   fill="black",
                   font=text_font,
                   anchor="mm")
-        text_size = int((height*(1-config.lssn_upper_part_ratio)-text_padding)/2*config.lssn_info_text_ratio)
+        text_size = int((height*(1-config.LSSN_UPPER_PART_RATIO)-text_padding)/2*config.LSSN_INFO_TEXT_RATIO)
         text_font = ImageFont.truetype(self.font, max(text_size, 1))
         while (text_font.getlength(lesson.instructor) > width - 2*outline_width - 2*text_padding
                or text_font.getlength(lesson.place) > width - 2*outline_width - 2*text_padding
@@ -344,13 +344,13 @@ class SchedulePainter():
             text_size -= 1
             text_font = ImageFont.truetype(self.font, text_size)
         draw.text((x + width/2,
-                   y + (2/3 * config.lssn_upper_part_ratio + 1/3)*height - outline_width/3),
+                   y + (2/3 * config.LSSN_UPPER_PART_RATIO + 1/3)*height - outline_width/3),
                    text=lesson.instructor,
                    font=text_font,
                    fill="black",
                    anchor="mm")
         draw.text((x + width/2,
-                   y + (1/3 * config.lssn_upper_part_ratio + 2/3)*height - outline_width/3),
+                   y + (1/3 * config.LSSN_UPPER_PART_RATIO + 2/3)*height - outline_width/3),
                    text=lesson.place,
                    font=text_font,
                    fill="black",

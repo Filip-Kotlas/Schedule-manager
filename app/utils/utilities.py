@@ -1,24 +1,28 @@
+"""Contains functions for loading and saving of settings and usefull enum types."""
 import json
 from pathlib import Path
 from typing import Dict
 from enum import Enum
 
 def load_settings() -> Dict:
+    """
+    Loads the settings from the settings.json file.
+
+    Returns:
+        Dict: Returns dictionary with loaded settings form settings.json file.
+    """
     settings_path = Path(__file__).parent.parent / "utils" / "settings.json"
-    # NOTE: Pozor, zde by mohl být problém, pokud bych měl komplikovanější strukturu adresáře.
-    try:
-        with open(settings_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print("Error: Could not find the settings.json file.")
-        return {}
+    with open(settings_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def update_settings(settings: Dict) -> None:
+    """Updates settings in the settings.json file."""
     settings_path = Path(__file__).parent.parent / "utils" / "settings.json"
     with open(settings_path, "w", encoding="utf-8") as f:
         json.dump(settings, f, indent=4)
 
 class Day(Enum):
+    """Enum class for days in a week."""
     MON = 0
     TUE = 1
     WED = 2
@@ -32,5 +36,6 @@ class Day(Enum):
         return string_days[self.value]
 
 class ScreenState(Enum):
+    """Enum class for posible states of the screen."""
     SCHEDULE_DRAWN = 0
     SCHEDULE_LIST_SHOWN = 1

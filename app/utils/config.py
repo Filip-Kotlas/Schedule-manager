@@ -1,19 +1,19 @@
-main_window_name = "Rozvrhář"
-main_window_initial_size = (800, 600)
-lesson_window_initial_size = (600, 400)
+"""Contains constants used throughout the code."""
+MAIN_WINDOW_INITIAL_SIZE = (800, 600)
+LESSON_WINDOW_INITIAL_SIZE = (600, 400)
 
-bg_line_width_factor = 1.0 / 500
-bg_text_size_factor = 1.0 / 80
-bg_text_padding_factor = 1.0 / 150
-schedule_padding_factor = 1.0 / 50
-side_offset_factor = 1.0 / 50
-top_side_offset_factor = 1.0 / 50
-left_side_offset_factor = 1.0 / 7
+BG_LINE_WIDTH_FACTOR = 1.0 / 500
+BG_TEXT_SIZE_FACTOR = 1.0 / 80
+BG_TEXT_PADDING_FACTOR = 1.0 / 150
+BG_SCHEDULE_PADDING_FACTOR = 1.0 / 50
+BG_SIDE_OFFSET_FACTOR = 1.0 / 50
+BG_TOP_SIDE_OFFSET_FACTOR = 1.0 / 50
+BG_LEFT_SIDE_OFFSET_FACTOR = 1.0 / 7
 
-color_darkening_factor = 0.6
-lssn_outline_width_factor = 1.0 / 250
-lssn_text_outline_width_factor = 1.0 / 7
-lssn_name_text_ratio = 1.0 / 3
-lssn_info_text_ratio = 1.0 / 2
-lssn_text_padding_factor =  1.0 / 200
-lssn_upper_part_ratio = 2/3
+COLOR_DARKENING_FACTOR = 0.6
+LSSN_OUTLINE_WIDTH_FACTOR = 1.0 / 250
+LSSN_TEXT_OUTLINE_WIDTH_FACTOR = 1.0 / 7
+LSSN_NAME_TEXT_RATIO = 1.0 / 3
+LSSN_INFO_TEXT_RATIO = 1.0 / 2
+LSSN_TEXT_PADDING_FACTOR =  1.0 / 200
+LSSN_UPPER_PART_RATIO = 2/3
