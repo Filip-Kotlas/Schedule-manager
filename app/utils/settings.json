@@ -2,7 +2,7 @@
     "schedule_width": 800,
     "schedule_height": 400,
     "schedule_orientation": "horizontal",
-    "day_start": "08:00",
+    "day_start": "05:00",
     "day_end": "20:00",
     "days_in_week": "1111100",
     "text_scale": 1.0,

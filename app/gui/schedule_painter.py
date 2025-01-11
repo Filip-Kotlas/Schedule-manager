@@ -1,6 +1,8 @@
+"""Contains class responsible for drawing the schedule."""
 import tkinter as tk
 import math
 from typing import Tuple
+from typing import Dict
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 from app.utils import config
 from app.utils import utilities
@@ -9,6 +11,7 @@ from app.src.schedule import Schedule
 
 
 class SchedulePainter():
+    """Drawing agent of the schedule."""
 
     def __init__(self):
         self.settings = utilities.load_settings()
@@ -20,6 +23,7 @@ class SchedulePainter():
         self.active_schedule = None
 
     def update(self) -> None:
+        """Updates the settings of the schedule."""
         self.settings = utilities.load_settings()
         self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
         self.orientation = self.settings["schedule_orientation"]
@@ -27,10 +31,20 @@ class SchedulePainter():
         self.bold_font = self.settings["text_bold_font"]
 
     def change_schedule(self, schedule: Schedule) -> None:
+        """
+        Changes the active schedule.
+        
+        Args:
+            schedule (Schedule): New schedule.
+        """
         self.active_schedule = schedule
-        # TODO: Možná přidat kontrolu typu. A to i jinde.
 
     def draw(self) -> None:
+        """
+        Draws the schedule to the image.
+        
+        Based on the set orientation draws the horizontal or vertical schedule.
+        """
         draw = ImageDraw.Draw(self.image)
         draw.rectangle((0, 0, self.settings["schedule_width"], self.settings["schedule_height"]), fill="white")
 
@@ -39,18 +53,27 @@ class SchedulePainter():
         elif self.orientation == "vertical":
             self.draw_vertical(draw)
         else:
-            print("Error: Wrong orientation")
-            # TODO: Raise exception.
+            raise ValueError
 
     def draw_horizontal(self, draw: ImageDraw.ImageDraw) -> None:
+        """
+        Draws the schedule horizontally.
+
+        Draws the background of the schedule. Then draws the lessons of the schedule that take place
+        in the days that are set in the settings to be shown. If a lesson, partially or wholly,
+        takes place outside of the set times of the schedule, only the part of the lesson that
+        protrude into the set times is drawn.
+
+        Args:
+            draw (ImageDraw.ImageDraw): Drawing object.
+        """
         base_origin, cell_dimension = self.draw_horizontal_background(draw)
 
-        hours_in_day = int(self.settings["day_end"][:2])*60 \
-                       + int(self.settings["day_end"][3:5]) \
-                       - int(self.settings["day_start"][:2])*60 \
-                       - int(self.settings["day_start"][3:5])
+        hours_in_day = (int(self.settings["day_end"][:2])*60
+                        + int(self.settings["day_end"][3:5])
+                        - int(self.settings["day_start"][:2])*60
+                        - int(self.settings["day_start"][3:5]))
         hours_in_day = hours_in_day / 60
-        # TODO: Zkontrolovat jestli se takto píšou příkazy na více řádků.
 
         valid_lessons = (lssn for lssn in self.active_schedule.lessons if self.settings["days_in_week"][lssn.day.value] == "1" )
         for lesson in valid_lessons:
@@ -74,97 +97,156 @@ class SchedulePainter():
                     lesson_width = hours_in_day * cell_dimension[0] - x_offset
                 self.draw_lesson_horizontal(draw,
                                             lesson,
-                                            base_origin[0] + x_offset,
-                                            base_origin[1] + y_offset,
-                                            lesson_width,
-                                            cell_dimension[1])
+                                            (base_origin[0] + x_offset, base_origin[1] + y_offset),
+                                            (lesson_width, cell_dimension[1]))
+
+    def compute_schedule_layout_dimensions(self) -> Dict:
+        """
+        Computes the dimensions of layout of the background of the schedule.
+        
+        Returns:
+            Dict: The layout dimensions.
+        """
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        layout_dimensions = {
+            "line_width": int(general_size * config.BG_LINE_WIDTH_FACTOR),
+            "text_size": int(general_size * config.BG_TEXT_SIZE_FACTOR * self.settings["text_scale"]),
+            "text_padding": int(general_size * config.BG_TEXT_PADDING_FACTOR * self.settings["text_scale"]),
+            "schedule_padding": int(general_size * config.BG_SCHEDULE_PADDING_FACTOR),
+            "side_offset": int(general_size * config.BG_SIDE_OFFSET_FACTOR),
+            "top_side_offset": int(general_size * config.BG_TOP_SIDE_OFFSET_FACTOR),
+            "left_side_offset": int(general_size * config.BG_LEFT_SIDE_OFFSET_FACTOR)
+        }
+        return layout_dimensions
 
     def draw_horizontal_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
-        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.BG_LINE_WIDTH_FACTOR)
-        text_size = int(general_size * config.BG_TEXT_SIZE_FACTOR * self.settings["text_scale"])
-        text_padding = int(general_size * config.BG_TEXT_PADDING_FACTOR * self.settings["text_scale"])
-        schedule_padding = int(general_size * config.BG_SCHEDULE_PADDING_FACTOR)
-        side_offset = int(general_size * config.BG_SIDE_OFFSET_FACTOR)
-        left_side_offset = int(general_size * config.BG_LEFT_SIDE_OFFSET_FACTOR)
+        """
+        Draws background lines and time and day labels to the horizontal schedule.
+
+        Draws the name of the schedule to the top right-hand corner. Draws vertical lines and
+        time labels. Draws horizontal lines with day labels.
+
+        Returns:
+            Tuple[Tuple[int, int], Tuple[float, float]]: Tuple of two tuples. The first tuple
+                contains coordinates of the origin of the base of the schedule, ie. rectangle where
+                the actual lessons are to be drawn. The second tuple contains width and height of
+                the cells of the schedule.
+        """
+        lay_dim = self.compute_schedule_layout_dimensions()
 
         start_hour = int(self.settings["day_start"][0:2])
         end_hour = int(self.settings["day_end"][0:2])
         if end_hour <= start_hour:
             end_hour += 24
         column_number = end_hour - start_hour
-        row_number = self.settings["days_in_week"].count("1")
-        #TODO: Přidat vyjímku
 
-        cell_width = (self.settings["schedule_width"] - 2*schedule_padding - left_side_offset - side_offset) / float(column_number)
-        cell_height = (self.settings["schedule_height"] - 2*schedule_padding - text_size - text_padding - 2*side_offset) / float(row_number)
-        base_origin = (schedule_padding + left_side_offset,
-                       schedule_padding + text_size + text_padding + side_offset)
+        cell_width = (self.settings["schedule_width"]
+                      - 2*lay_dim["schedule_padding"]
+                      - lay_dim["left_side_offset"]
+                      - lay_dim["side_offset"])/float(column_number)
+        cell_height = (self.settings["schedule_height"]
+                       - 2*lay_dim["schedule_padding"]
+                       - lay_dim["text_size"]
+                       - lay_dim["text_padding"]
+                       - 2*lay_dim["side_offset"])/float(self.settings["days_in_week"].count("1"))
+        base_origin = (lay_dim["schedule_padding"] + lay_dim["left_side_offset"],
+                       lay_dim["schedule_padding"] + lay_dim["text_size"] + lay_dim["text_padding"] + lay_dim["side_offset"])
 
-        text_font = ImageFont.truetype(self.bold_font, text_size)
-        draw.text((schedule_padding, schedule_padding), text=self.active_schedule.name, fill="black", font=text_font, anchor="lt")
-        text_font = ImageFont.truetype(self.font, text_size)
+        draw.text((lay_dim["schedule_padding"], lay_dim["schedule_padding"]),
+                  text=self.active_schedule.name,
+                  fill="black",
+                  font=ImageFont.truetype(self.bold_font, lay_dim["text_size"]),
+                  anchor="lt")
 
-        increment = 0
-        for hour in (f"{i%24}:00" for i in range(start_hour, end_hour + 1)):
-            x1 = schedule_padding + left_side_offset + increment*cell_width
-            y1 = schedule_padding + text_size + text_padding
-            x2 = x1
-            y2 = self.settings["schedule_height"] - schedule_padding
-            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
-            draw.text((x1, schedule_padding + text_size/2), text=hour, fill="black", font=text_font, anchor="mm")
-            increment += 1
+        for increment, hour in enumerate(f"{i%24}:00" for i in range(start_hour, end_hour + 1)):
+            coords = [lay_dim["schedule_padding"] + lay_dim["left_side_offset"] + increment*cell_width,
+                      lay_dim["schedule_padding"] + lay_dim["text_size"] + lay_dim["text_padding"],
+                      lay_dim["schedule_padding"] + lay_dim["left_side_offset"] + increment*cell_width,
+                      self.settings["schedule_height"] - lay_dim["schedule_padding"]]
+            draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
+            draw.text((coords[0],
+                       lay_dim["schedule_padding"] + lay_dim["text_size"]/2),
+                       text=hour, fill="black",
+                       font=ImageFont.truetype(self.font, lay_dim["text_size"]),
+                       anchor="mm")
 
         days_in_week = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
         selected_days = (day for char, day in zip(self.settings["days_in_week"], days_in_week) if char == "1")
-        increment = 0
-        for day in selected_days:
-            x1 = schedule_padding
-            y1 = schedule_padding + text_size + text_padding + side_offset + increment*cell_height
-            x2 = self.settings["schedule_width"] - schedule_padding
-            y2 = y1
-            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
-            draw.text((x1, y1 + cell_height/2), text=day, fill="black", font=text_font, anchor="lm")
-            increment += 1
-        y1 = schedule_padding + text_size + text_padding + side_offset + increment*cell_height
-        y2 = y1
-        draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+        for increment, day in enumerate(selected_days):
+            coords = [lay_dim["schedule_padding"],
+                      (lay_dim["schedule_padding"]
+                      + lay_dim["text_size"]
+                      + lay_dim["text_padding"]
+                      + lay_dim["side_offset"]
+                      + increment*cell_height),
+                      self.settings["schedule_width"] - lay_dim["schedule_padding"],
+                      (lay_dim["schedule_padding"]
+                      + lay_dim["text_size"]
+                      + lay_dim["text_padding"]
+                      + lay_dim["side_offset"]
+                      + increment*cell_height)]
+            draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
+            draw.text((coords[0], coords[1] + cell_height/2),
+                      text=day,
+                      fill="black",
+                      font=ImageFont.truetype(self.font, lay_dim["text_size"]),
+                      anchor="lm")
+        increment += 1
+        coords[1] = (lay_dim["schedule_padding"]
+                     + lay_dim["text_size"]
+                     + lay_dim["text_padding"]
+                     + lay_dim["side_offset"]
+                     + increment*cell_height)
+        coords[3] = coords[1]
+        draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
 
         return (base_origin, (cell_width, cell_height))
 
-    def draw_lesson_horizontal(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, width: int, height: int) -> None:
-        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
-        outline_width = int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR)
+    def draw_lesson_horizontal(self,
+                               draw: ImageDraw.ImageDraw,
+                               lesson: Lesson,
+                               coordinates: Tuple[int, int],
+                               dimensions: Tuple[int, int]) -> None:
+        """
+        Draws a lesson horizontally on given coordinates with given width and height.
 
-        draw.rectangle([x, y, x + width, y + height],
+        Args:
+            draw (ImageDraw): Agent to be drawn with.
+            lesson (Lesson): Lesson to be drawn.
+            coordinates (Tuple[int, int]): Coordinates where the upper right corner is to be drawn.
+            dimensions (Tuple[int, int]): Width and height of the lesson.
+        """
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        lay_dim = {"outline_width": int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR),
+                   "text_size": int(dimensions[1]*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO),
+                   "text_padding": int(general_size*config.LSSN_TEXT_PADDING_FACTOR)}
+        lay_dim["text_outline_width"] = int(max(lay_dim["text_size"]*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
+
+        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
+        draw.rectangle([coordinates[0], coordinates[1], coordinates[0] + dimensions[0], coordinates[1] + dimensions[1]],
                        fill=lesson.color,
                        outline=darker_color,
-                       width=outline_width)
-        draw.rectangle([x, y + config.LSSN_UPPER_PART_RATIO*height, x + width, y + height],
+                       width=lay_dim["outline_width"])
+        draw.rectangle([coordinates[0], coordinates[1] + config.LSSN_UPPER_PART_RATIO*dimensions[1], coordinates[0] + dimensions[0], coordinates[1] + dimensions[1]],
                        fill="white",
                        outline=lesson.color,
-                       width=outline_width)
-        draw.line([x+outline_width,
-                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2,
-                   x + width - outline_width,
-                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2],
+                       width=lay_dim["outline_width"])
+        draw.line([coordinates[0]+lay_dim["outline_width"],
+                   coordinates[1] + config.LSSN_UPPER_PART_RATIO*dimensions[1] + (lay_dim["outline_width"]-1)//2,
+                   coordinates[0] + dimensions[0] - lay_dim["outline_width"],
+                   coordinates[1] + config.LSSN_UPPER_PART_RATIO*dimensions[1] + (lay_dim["outline_width"]-1)//2],
                   fill="white",
-                  width=outline_width)
+                  width=lay_dim["outline_width"])
 
-        text_size = int(height*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO)
-        text_padding = int(general_size*config.LSSN_TEXT_PADDING_FACTOR)
-        text_outline_width = int(max(text_size*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
-        text_font = ImageFont.truetype(self.font, max(text_size, 1))
-        while text_font.getlength(lesson.name) > width - 2*outline_width - 2*text_padding and text_size > 1:
-            text_size -= 1
-            text_font = ImageFont.truetype(self.font, text_size)
-        # TODO: Změnit velikost textu, aby byla závislá na dostupném místě (a to i šířce).
-        # TODO: Umožnit volbu fontu
-        mid_x = x + width/2
-        mid_y = y + config.LSSN_UPPER_PART_RATIO*height/2
-        for dx in range(-text_outline_width, text_outline_width + 1):
-            for dy in range(-text_outline_width, text_outline_width + 1):
+        text_font = ImageFont.truetype(self.font, max(lay_dim["text_size"], 1))
+        while text_font.getlength(lesson.name) > dimensions[0] - 2*lay_dim["outline_width"] - 2*lay_dim["text_padding"] and lay_dim["text_size"] > 1:
+            lay_dim["text_size"] -= 1
+            text_font = ImageFont.truetype(self.font, lay_dim["text_size"])
+
+        mid_x = coordinates[0] + dimensions[0]/2
+        mid_y = coordinates[1] + config.LSSN_UPPER_PART_RATIO*dimensions[1]/2
+        for dx in range(-lay_dim["text_outline_width"], lay_dim["text_outline_width"] + 1):
+            for dy in range(-lay_dim["text_outline_width"], lay_dim["text_outline_width"] + 1):
                 draw.text((mid_x + dx, mid_y + dy),
                           lesson.name,
                           fill="white",
@@ -175,25 +257,36 @@ class SchedulePainter():
                   fill="black",
                   font=text_font,
                   anchor="mm")
-        text_size = int(height*(1-config.LSSN_UPPER_PART_RATIO)*config.LSSN_INFO_TEXT_RATIO)
-        text_font = ImageFont.truetype(self.font, max(1, text_size))
-        while text_font.getlength(lesson.instructor + "  " + lesson.place) > width - 2*outline_width - 2*text_padding and text_size > 1:
-            text_size -= 1
-            text_font = ImageFont.truetype(self.font, text_size)
-        draw.text((x + outline_width + text_padding,
-                   y + (1 + config.LSSN_UPPER_PART_RATIO)/2*height - outline_width/2),
+        lay_dim["text_size"] = int(dimensions[1]*(1-config.LSSN_UPPER_PART_RATIO)*config.LSSN_INFO_TEXT_RATIO)
+        text_font = ImageFont.truetype(self.font, max(1, lay_dim["text_size"]))
+        while text_font.getlength(lesson.instructor + "  " + lesson.place) > dimensions[0] - 2*lay_dim["outline_width"] - 2*lay_dim["text_padding"] and lay_dim["text_size"] > 1:
+            lay_dim["text_size"] -= 1
+            text_font = ImageFont.truetype(self.font, lay_dim["text_size"])
+        draw.text((coordinates[0] + lay_dim["outline_width"] + lay_dim["text_padding"],
+                   coordinates[1] + (1 + config.LSSN_UPPER_PART_RATIO)/2*dimensions[1] - lay_dim["outline_width"]/2),
                    text=lesson.instructor,
                    font=text_font,
                    fill="black",
                    anchor="lm")
-        draw.text((x + width - outline_width - text_padding,
-                   y + (1 + config.LSSN_UPPER_PART_RATIO)/2*height - outline_width/2),
+        draw.text((coordinates[0] + dimensions[0] - lay_dim["outline_width"] - lay_dim["text_padding"],
+                   coordinates[1] + (1 + config.LSSN_UPPER_PART_RATIO)/2*dimensions[1] - lay_dim["outline_width"]/2),
                    text=lesson.place,
                    font=text_font,
                    fill="black",
                    anchor="rm")
 
     def draw_vertical(self, draw: ImageDraw.ImageDraw) -> None:
+        """
+        Draws the schedule vertically.
+
+        Draws the background of the schedule. Then draws the lessons of the schedule that take place
+        in the days that are set in the settings to be shown. If a lesson, partially or wholly,
+        takes place outside of the set times of the schedule, only the part of the lesson that
+        protrude into the set times is drawn.
+
+        Args:
+            draw (ImageDraw.ImageDraw): Drawing object.
+        """
         base_origin, cell_dimension = self.draw_vertical_background(draw)
 
         hours_in_day = int(self.settings["day_end"][:2])*60 \
@@ -223,109 +316,140 @@ class SchedulePainter():
                     lesson_height = hours_in_day * cell_dimension[1] - y_offset
                 self.draw_lesson_vertical(draw,
                                           lesson,
-                                          base_origin[0] + x_offset,
-                                          base_origin[1] + y_offset,
-                                          cell_dimension[0],
-                                          lesson_height)
+                                          (base_origin[0] + x_offset, base_origin[1] + y_offset),
+                                          (cell_dimension[0], lesson_height))
 
     def draw_vertical_background(self, draw: ImageDraw.ImageDraw) -> Tuple[Tuple[int, int], Tuple[float, float]]:
-        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        line_width = int(general_size * config.BG_LINE_WIDTH_FACTOR)
-        text_size = int(general_size * config.BG_TEXT_SIZE_FACTOR * self.settings["text_scale"])
-        text_padding = int(general_size * config.BG_TEXT_PADDING_FACTOR * self.settings["text_scale"])
-        schedule_padding = int(general_size * config.BG_SCHEDULE_PADDING_FACTOR)
-        side_offset = int(general_size * config.BG_SIDE_OFFSET_FACTOR)
-        top_side_offset = int(general_size * config.BG_TOP_SIDE_OFFSET_FACTOR)
+        """
+        Draws background lines and time and day labels of the vertical schedule.
+
+        Draws the name of the schedule to the top right-hand corner. Then draws horizontal lines and
+        time labels. Finally it draws vertical lines and day labels.
+
+        Returns:
+            Tuple[Tuple[int, int], Tuple[float, float]]: Tuple of two tuples. The first tuple
+                contains coordinates of the origin of the base of the schedule, ie. rectangle where
+                the actual lessons are to be drawn. The second tuple contains width and height of
+                the cells of the schedule.
+        """
+        lay_dim = self.compute_schedule_layout_dimensions()
 
         start_hour = int(self.settings["day_start"][0:2])
         end_hour = int(self.settings["day_end"][0:2])
         if end_hour <= start_hour:
             end_hour += 24
-        row_number = end_hour - start_hour
-        column_number = self.settings["days_in_week"].count("1")
-        #TODO: Přidat vyjímku
 
-        text_font = ImageFont.truetype(self.bold_font, text_size)
-        draw.text((schedule_padding, schedule_padding), text=self.active_schedule.name, fill="black", font=text_font, anchor="lt")
-        text_font = ImageFont.truetype(self.font, text_size)
+        draw.text((lay_dim["schedule_padding"], lay_dim["schedule_padding"]),
+                  text=self.active_schedule.name,
+                  fill="black",
+                  font=ImageFont.truetype(self.bold_font, lay_dim["text_size"]),
+                  anchor="lt")
 
         times = [f"{i%24}:00" for i in range(start_hour, end_hour + 1)]
-        time_text_length = max((text_font.getlength(time) for time in times))
+        time_text_length = max((ImageFont.truetype(self.font, lay_dim["text_size"]).getlength(time) for time in times))
 
         cell_width = (self.settings["schedule_width"]
-                      - 2*schedule_padding
+                      - 2*lay_dim["schedule_padding"]
                       - time_text_length
-                      - text_padding
-                      - 2*side_offset) / float(column_number)
+                      - lay_dim["text_padding"]
+                      - 2*lay_dim["side_offset"])/float(self.settings["days_in_week"].count("1"))
         cell_height = (self.settings["schedule_height"]
-                       - 2*schedule_padding
-                       - text_size
-                       - text_padding
-                       - top_side_offset
-                       - side_offset) / float(row_number)
-        # TODO: Okomentovat, co to znamená
-        base_origin = (schedule_padding + time_text_length + text_padding + side_offset,
-                       schedule_padding + top_side_offset + text_size + text_padding)
+                       - 2*lay_dim["schedule_padding"]
+                       - lay_dim["text_size"]
+                       - lay_dim["text_padding"]
+                       - lay_dim["top_side_offset"]
+                       - lay_dim["side_offset"])/float(end_hour - start_hour)
+        base_origin = (lay_dim["schedule_padding"] + time_text_length + lay_dim["text_padding"] + lay_dim["side_offset"],
+                       lay_dim["schedule_padding"] + lay_dim["top_side_offset"] + lay_dim["text_size"] + lay_dim["text_padding"])
 
-        increment = 0
-        for hour in times:
-            x1 = schedule_padding + time_text_length + text_padding
-            y1 = schedule_padding + top_side_offset + text_size + text_padding + increment*cell_height
-            x2 = self.settings["schedule_width"] - schedule_padding
-            y2 = y1
-            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
-            draw.text((schedule_padding + time_text_length/2, y1), text=hour, fill="black", font=text_font, anchor="mm")
-            increment += 1
+        for increment, hour in enumerate(times):
+            coords = [lay_dim["schedule_padding"] + time_text_length + lay_dim["text_padding"],
+                      (lay_dim["schedule_padding"]
+                       + lay_dim["top_side_offset"]
+                       + lay_dim["text_size"]
+                       + lay_dim["text_padding"]
+                       + increment*cell_height),
+                       self.settings["schedule_width"] - lay_dim["schedule_padding"],
+                       (lay_dim["schedule_padding"]
+                       + lay_dim["top_side_offset"]
+                       + lay_dim["text_size"]
+                       + lay_dim["text_padding"]
+                       + increment*cell_height)]
+            draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
+            draw.text((lay_dim["schedule_padding"] + time_text_length/2, coords[1]),
+                      text=hour,
+                      fill="black",
+                      font=ImageFont.truetype(self.font, lay_dim["text_size"]),
+                      anchor="mm")
 
         days_in_week = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"]
-        selected_days = (day for char, day in zip(self.settings["days_in_week"], days_in_week) if char == "1")
-        increment = 0
-        for day in selected_days:
-            x1 = schedule_padding + time_text_length + text_padding + side_offset + increment*cell_width
-            y1 = schedule_padding
-            x2 = x1
-            y2 = self.settings["schedule_height"] - schedule_padding
-            draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
-            draw.text((x1 + cell_width/2, y1 + top_side_offset + text_size/2), text=day, fill="black", font=text_font, anchor="mm")
-            increment += 1
-        x1 = schedule_padding + time_text_length + text_padding + side_offset + increment*cell_width
-        x2 = x1
-        draw.line((x1, y1, x2, y2), fill="lightgrey", width=line_width)
+        for increment, day in enumerate((day for char, day in zip(self.settings["days_in_week"], days_in_week) if char == "1")):
+            coords = [(lay_dim["schedule_padding"]
+                       + time_text_length
+                       + lay_dim["text_padding"]
+                       + lay_dim["side_offset"]
+                       + increment*cell_width),
+                      lay_dim["schedule_padding"],
+                      (lay_dim["schedule_padding"]
+                       + time_text_length
+                       + lay_dim["text_padding"]
+                       + lay_dim["side_offset"]
+                       + increment*cell_width),
+                      self.settings["schedule_height"] - lay_dim["schedule_padding"]]
+            draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
+            draw.text((coords[0] + cell_width/2, coords[1] + lay_dim["top_side_offset"] + lay_dim["text_size"]/2),
+                      text=day,
+                      fill="black",
+                      font=ImageFont.truetype(self.font, lay_dim["text_size"]),
+                      anchor="mm")
+        increment += 1
+        coords[0] = lay_dim["schedule_padding"] + time_text_length + lay_dim["text_padding"] + lay_dim["side_offset"] + increment*cell_width
+        coords[2] = coords[0]
+        draw.line(coords, fill="lightgrey", width=lay_dim["line_width"])
 
         return (base_origin, (cell_width, cell_height))
 
-    def draw_lesson_vertical(self, draw: ImageDraw.ImageDraw, lesson: Lesson, x: int, y: int, width: int, height: int) -> None:
-        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
-        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
-        outline_width = int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR)
+    def draw_lesson_vertical(self, draw: ImageDraw.ImageDraw, lesson: Lesson, coord: Tuple[int, int], dim: Tuple[int, int]) -> None:
+        """
+        Draws a lesson vertically on given coordinates with given width and height.
 
-        draw.rectangle([x, y, x + width, y + height],
+        Args:
+            draw (ImageDraw): Agent to be drawn with.
+            lesson (Lesson): Lesson to be drawn.
+            coordinates (Tuple[int, int]): Coordinates where the upper right corner is to be drawn.
+            dimensions (Tuple[int, int]): Width and height of the lesson.
+        """
+        general_size = int(math.sqrt(self.settings["schedule_height"]**2 + self.settings["schedule_width"]**2))
+        lay_dim = {"outline_width": int(general_size * config.LSSN_OUTLINE_WIDTH_FACTOR),
+                   "text_size": int(dim[0]*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO),
+                   "text_padding": int(general_size*config.LSSN_TEXT_PADDING_FACTOR)}
+        lay_dim["text_outline_width"] = int(max(lay_dim["text_size"]*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
+
+        darker_color = tuple(int(component*config.COLOR_DARKENING_FACTOR) for component in lesson.color)
+        draw.rectangle([coord[0], coord[1], coord[0] + dim[0], coord[1] + dim[1]],
                        fill=lesson.color,
                        outline=darker_color,
-                       width=outline_width)
-        draw.rectangle([x, y + config.LSSN_UPPER_PART_RATIO*height, x + width, y + height],
+                       width=lay_dim["outline_width"])
+        draw.rectangle([coord[0], coord[1] + config.LSSN_UPPER_PART_RATIO*dim[1], coord[0] + dim[0], coord[1] + dim[1]],
                        fill="white",
                        outline=lesson.color,
-                       width=outline_width)
-        draw.line([x+outline_width,
-                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2,
-                   x + width - outline_width,
-                   y + config.LSSN_UPPER_PART_RATIO*height + (outline_width-1)//2],
+                       width=lay_dim["outline_width"])
+        draw.line([coord[0] + lay_dim["outline_width"],
+                   coord[1] + config.LSSN_UPPER_PART_RATIO*dim[1] + (lay_dim["outline_width"]-1)//2,
+                   coord[0] + dim[0] - lay_dim["outline_width"],
+                   coord[1] + config.LSSN_UPPER_PART_RATIO*dim[1] + (lay_dim["outline_width"]-1)//2],
                   fill="white",
-                  width=outline_width)
+                  width=lay_dim["outline_width"])
 
-        text_size = int(width*config.LSSN_UPPER_PART_RATIO*config.LSSN_NAME_TEXT_RATIO)
-        text_padding = int(general_size*config.LSSN_TEXT_PADDING_FACTOR)
-        text_outline_width = int(max(text_size*config.LSSN_TEXT_OUTLINE_WIDTH_FACTOR, 1))
-        text_font = ImageFont.truetype(self.font, max(1, text_size))
-        while text_font.getlength(lesson.name) > width - 2*outline_width - 2*text_padding and text_size > 1:
-            text_size -= 1
-            text_font = ImageFont.truetype(self.font, text_size)
+        text_font = ImageFont.truetype(self.font, max(1, lay_dim["text_size"]))
+        while text_font.getlength(lesson.name) > dim[0] - 2*lay_dim["outline_width"] - 2*lay_dim["text_padding"] and lay_dim["text_size"] > 1:
+            lay_dim["text_size"] -= 1
+            text_font = ImageFont.truetype(self.font, lay_dim["text_size"])
 
-        mid_x = x + width/2
-        mid_y = y + config.LSSN_UPPER_PART_RATIO*height/2
-        for dx in range(-text_outline_width, text_outline_width + 1):
-            for dy in range(-text_outline_width, text_outline_width + 1):
+        mid_x = coord[0] + dim[0]/2
+        mid_y = coord[1] + config.LSSN_UPPER_PART_RATIO*dim[1]/2
+        for dx in range(-lay_dim["text_outline_width"], lay_dim["text_outline_width"] + 1):
+            for dy in range(-lay_dim["text_outline_width"], lay_dim["text_outline_width"] + 1):
                 draw.text((mid_x + dx, mid_y + dy),
                           lesson.name,
                           fill="white",
@@ -336,27 +460,36 @@ class SchedulePainter():
                   fill="black",
                   font=text_font,
                   anchor="mm")
-        text_size = int((height*(1-config.LSSN_UPPER_PART_RATIO)-text_padding)/2*config.LSSN_INFO_TEXT_RATIO)
-        text_font = ImageFont.truetype(self.font, max(text_size, 1))
-        while (text_font.getlength(lesson.instructor) > width - 2*outline_width - 2*text_padding
-               or text_font.getlength(lesson.place) > width - 2*outline_width - 2*text_padding
-               and text_size > 1):
-            text_size -= 1
-            text_font = ImageFont.truetype(self.font, text_size)
-        draw.text((x + width/2,
-                   y + (2/3 * config.LSSN_UPPER_PART_RATIO + 1/3)*height - outline_width/3),
+        lay_dim["text_size"] = int((dim[1]*(1-config.LSSN_UPPER_PART_RATIO)-lay_dim["text_padding"])/2*config.LSSN_INFO_TEXT_RATIO)
+        text_font = ImageFont.truetype(self.font, max(lay_dim["text_size"], 1))
+        while (text_font.getlength(lesson.instructor) > dim[0] - 2*lay_dim["outline_width"] - 2*lay_dim["text_padding"]
+               or text_font.getlength(lesson.place) > dim[0] - 2*lay_dim["outline_width"] - 2*lay_dim["text_padding"]
+               and lay_dim["text_size"] > 1):
+            lay_dim["text_size"] -= 1
+            text_font = ImageFont.truetype(self.font, lay_dim["text_size"])
+        draw.text((coord[0] + dim[0]/2,
+                   coord[1] + (2/3 * config.LSSN_UPPER_PART_RATIO + 1/3)*dim[1] - lay_dim["outline_width"]/3),
                    text=lesson.instructor,
                    font=text_font,
                    fill="black",
                    anchor="mm")
-        draw.text((x + width/2,
-                   y + (1/3 * config.LSSN_UPPER_PART_RATIO + 2/3)*height - outline_width/3),
+        draw.text((coord[0] + dim[0]/2,
+                   coord[1] + (1/3 * config.LSSN_UPPER_PART_RATIO + 2/3)*dim[1] - lay_dim["outline_width"]/3),
                    text=lesson.place,
                    font=text_font,
                    fill="black",
                    anchor="mm")
 
     def get_canvas(self, parent_widget) -> tk.Canvas:
+        """
+        Returns canvas with the image of the schedule.
+
+        Args:
+        parent_widget: Widget whose child will be the canvas.
+
+        Returns:
+            (tkinter.Canvas): Canvas to be returned.
+        """
         canvas = tk.Canvas(parent_widget, width=self.settings["schedule_width"], height=self.settings["schedule_height"], background="red")
         self.tk_image = ImageTk.PhotoImage(self.image)
         canvas.delete("all")
