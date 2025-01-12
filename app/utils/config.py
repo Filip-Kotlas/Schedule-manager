@@ -1,6 +1,9 @@
 """Contains constants used throughout the code."""
+from pathlib import Path
+
 MAIN_WINDOW_INITIAL_SIZE = (800, 600)
 LESSON_WINDOW_INITIAL_SIZE = (600, 400)
+SETTINGS_PATH = Path(__file__).parent / "settings.json"
 
 BG_LINE_WIDTH_FACTOR = 1.0 / 500
 BG_TEXT_SIZE_FACTOR = 1.0 / 80

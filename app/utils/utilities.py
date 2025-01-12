@@ -4,15 +4,16 @@ from pathlib import Path
 from typing import Dict
 from enum import Enum
 
-def load_settings() -> Dict:
+def load_settings(file_path: str) -> Dict:
     """
-    Loads the settings from the settings.json file.
+    Loads the settings from a file.
 
+    Args:
+        file_path (str): Path to the JSON file with settings.
     Returns:
         Dict: Returns dictionary with loaded settings form settings.json file.
     """
-    settings_path = Path(__file__).parent.parent / "utils" / "settings.json"
-    with open(settings_path, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def update_settings(settings: Dict) -> None:

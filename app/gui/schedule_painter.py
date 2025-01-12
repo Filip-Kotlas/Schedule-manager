@@ -1,9 +1,8 @@
 """Contains class responsible for drawing the schedule."""
-import tkinter as tk
 import math
 from typing import Tuple
 from typing import Dict
-from PIL import Image, ImageDraw, ImageTk, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 from app.utils import config
 from app.utils import utilities
 from app.src.lesson import Lesson
@@ -14,9 +13,8 @@ class SchedulePainter():
     """Drawing agent of the schedule."""
 
     def __init__(self):
-        self.settings = utilities.load_settings()
+        self.settings = utilities.load_settings(config.SETTINGS_PATH)
         self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
-        self.tk_image = ImageTk.PhotoImage(self.image)
         self.orientation = self.settings["schedule_orientation"]
         self.font = self.settings["text_font"]
         self.bold_font = self.settings["text_bold_font"]
@@ -24,7 +22,7 @@ class SchedulePainter():
 
     def update(self) -> None:
         """Updates the settings of the schedule."""
-        self.settings = utilities.load_settings()
+        self.settings = utilities.load_settings(config.SETTINGS_PATH)
         self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
         self.orientation = self.settings["schedule_orientation"]
         self.font = self.settings["text_font"]
@@ -480,18 +478,11 @@ class SchedulePainter():
                    fill="black",
                    anchor="mm")
 
-    def get_canvas(self, parent_widget) -> tk.Canvas:
+    def get_image(self) -> Image:
         """
-        Returns canvas with the image of the schedule.
-
-        Args:
-        parent_widget: Widget whose child will be the canvas.
+        Returns image of the schedule.
 
         Returns:
             (tkinter.Canvas): Canvas to be returned.
         """
-        canvas = tk.Canvas(parent_widget, width=self.settings["schedule_width"], height=self.settings["schedule_height"], background="red")
-        self.tk_image = ImageTk.PhotoImage(self.image)
-        canvas.delete("all")
-        canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
-        return canvas
+        return self.image

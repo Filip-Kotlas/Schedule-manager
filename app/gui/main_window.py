@@ -4,6 +4,7 @@ from tkinter import simpledialog
 from tkinter import filedialog
 from tkinter import messagebox
 import pickle
+from PIL import ImageTk
 import platform
 from typing import List
 from app.utils import config
@@ -23,8 +24,9 @@ class MainWindow():
         self.current_screen_state = utilities.ScreenState.SCHEDULE_LIST_SHOWN
         self.initialize_menu()
         self.schedules: List[Schedule] = []
-        self.schedules.append(Schedule("Rozvrh 1"))
         self.painter = SchedulePainter()
+        self.painter.change_schedule(Schedule(""))
+        self.tk_image = ImageTk.PhotoImage(self.painter.get_image())
 
         self.display_schedule_list()
 
@@ -63,7 +65,7 @@ class MainWindow():
         schedule_menu.add_command(label="Zobrazit", command=self.display_schedule_list, accelerator=f"{modifier_name}+V")
         schedule_menu.add_command(label="Nový", command=self.create_schedule, accelerator=f"{modifier_name}+N")
         schedule_menu.add_command(label="Otevřít", command=self.load_schedule, accelerator=f"{modifier_name}+O")
-        schedule_menu.add_command(label="Uložit jako...", command=self.save_schedule_as, accelerator=f"{modifier_name}+S")
+        schedule_menu.add_command(label="Uložit", command=self.save_schedule_as, accelerator=f"{modifier_name}+S")
 
         menu_bar.add_command(label="Hodiny", command=self.manage_lessons)
         menu_bar.add_command(label="Nastavení", command=self.open_settings)
@@ -203,7 +205,11 @@ class MainWindow():
         self.window.grid_columnconfigure(0, weight=1)
         self.window.grid_columnconfigure(1, weight=0)
 
-        canvas = self.painter.get_canvas(self.window)
+        settings = utilities.load_settings(config.SETTINGS_PATH)
+        canvas = tk.Canvas(self.window, width=settings["schedule_width"], height=settings["schedule_height"], background="white")
+        self.tk_image = ImageTk.PhotoImage(self.painter.get_image())
+        canvas.delete("all")
+        canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
         canvas.grid(row=0, column=0)
 
         horizontal_scrollbar = tk.Scrollbar(self.window, orient="horizontal", command=canvas.xview)

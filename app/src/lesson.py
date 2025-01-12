@@ -5,7 +5,8 @@ from app.utils import utilities
 
 class Lesson:
     """Lesson data structer."""
-    def __init__(self, name: str="",
+    def __init__(self,
+                 name: str="",
                  place: str="",
                  instructor: str="",
                  day: utilities.Day=utilities.Day.MON,

@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 from app.utils import utilities
+from app.utils import config
 
 class SettingsWindow():
     """Settings window."""
@@ -14,7 +15,7 @@ class SettingsWindow():
         self.window.focus_set()
         self.window.grab_set()
         self.window.transient(parent_window)
-        self.settings = utilities.load_settings()
+        self.settings = utilities.load_settings(config.SETTINGS_PATH)
 
         self.widget_variables = {"width": tk.StringVar(value=str(self.settings["schedule_width"])),
                                  "height": tk.StringVar(value=str(self.settings["schedule_height"])),
@@ -54,12 +55,12 @@ class SettingsWindow():
         wrapper_orientation = tk.Frame(wrapper_visuals)
         wrapper_orientation.grid(row=2, column=1, padx=5, pady=5)
         horizontal_radio_button = tk.Radiobutton(wrapper_orientation,
-                                                 text="Horizontální",
+                                                 text="Vodorovně",
                                                  variable=self.widget_variables["orientation"],
                                                  value="horizontal",
                                                  command=self.switch_width_height)
         vertical_radio_button = tk.Radiobutton(wrapper_orientation,
-                                               text="Vertikální",
+                                               text="Svisle",
                                                variable=self.widget_variables["orientation"],
                                                value="vertical",
                                                command=self.switch_width_height)
@@ -70,7 +71,7 @@ class SettingsWindow():
         text_scale_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
         text_scale_scale = tk.Scale(wrapper_visuals,
                                     from_=0.1,
-                                    to=3,
+                                    to=2,
                                     resolution=0.1,
                                     variable=self.widget_variables["text_scale"],
                                     orient="horizontal")
