@@ -29,6 +29,7 @@ def test_draw(load_test_image):
     painter = SchedulePainter()
     directory_path = Path(__file__).parent
     painter.settings = utilities.load_settings(directory_path / "test_settings.json")
+    painter.update_image()
 
     test_file_name, test_image = load_test_image
     schedule = Schedule("Rozvrh")

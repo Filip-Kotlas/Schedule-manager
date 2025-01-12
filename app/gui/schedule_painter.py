@@ -15,7 +15,6 @@ class SchedulePainter():
     def __init__(self):
         self.settings = utilities.load_settings(config.SETTINGS_PATH)
         self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
-        self.orientation = self.settings["schedule_orientation"]
         self.font = self.settings["text_font"]
         self.bold_font = self.settings["text_bold_font"]
         self.active_schedule = None
@@ -23,10 +22,13 @@ class SchedulePainter():
     def update(self) -> None:
         """Updates the settings of the schedule."""
         self.settings = utilities.load_settings(config.SETTINGS_PATH)
-        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
-        self.orientation = self.settings["schedule_orientation"]
         self.font = self.settings["text_font"]
         self.bold_font = self.settings["text_bold_font"]
+
+    def update_image(self) -> None:
+        """Updates image of the painter."""
+        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
+
 
     def change_schedule(self, schedule: Schedule) -> None:
         """
@@ -46,9 +48,9 @@ class SchedulePainter():
         draw = ImageDraw.Draw(self.image)
         draw.rectangle((0, 0, self.settings["schedule_width"], self.settings["schedule_height"]), fill="white")
 
-        if self.orientation == "horizontal":
+        if self.settings["schedule_orientation"] == "horizontal":
             self.draw_horizontal(draw)
-        elif self.orientation == "vertical":
+        elif self.settings["schedule_orientation"] == "vertical":
             self.draw_vertical(draw)
         else:
             raise ValueError
