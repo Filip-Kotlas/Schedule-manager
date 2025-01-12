@@ -1,6 +1,6 @@
 {
     "schedule_width": 900,
-    "schedule_height": 400,
+    "schedule_height": 500,
     "schedule_orientation": "horizontal",
     "day_start": "08:00",
     "day_end": "18:00",
