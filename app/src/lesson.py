@@ -1,6 +1,7 @@
 """Contains a class for the lessons."""
 from datetime import time
 from typing import Tuple
+
 from app.utils import utilities
 
 class Lesson:

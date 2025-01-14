@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
+
 from app.utils import utilities
 from app.utils import config
 

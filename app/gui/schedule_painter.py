@@ -2,7 +2,9 @@
 import math
 from typing import Tuple
 from typing import Dict
+
 from PIL import Image, ImageDraw, ImageFont
+
 from app.utils import config
 from app.utils import utilities
 from app.src.lesson import Lesson
@@ -24,6 +26,7 @@ class SchedulePainter():
         self.settings = utilities.load_settings(config.SETTINGS_PATH)
         self.font = self.settings["text_font"]
         self.bold_font = self.settings["text_bold_font"]
+        self.update_image()
 
     def update_image(self) -> None:
         """Updates image of the painter."""

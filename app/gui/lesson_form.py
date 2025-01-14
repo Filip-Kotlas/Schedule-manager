@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import colorchooser
 from tkinter import ttk
 from datetime import time
+
 from app.utils import utilities
 from app.src.lesson import Lesson
 

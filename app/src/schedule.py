@@ -1,6 +1,7 @@
 """Contains a class for the schedules."""
-from typing import List
 import pickle
+from typing import List
+
 from app.src.lesson import Lesson
 
 class Schedule:

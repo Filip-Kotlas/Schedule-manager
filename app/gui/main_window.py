@@ -3,10 +3,12 @@ import tkinter as tk
 from tkinter import simpledialog
 from tkinter import filedialog
 from tkinter import messagebox
-import pickle
-from PIL import ImageTk
 import platform
 from typing import List
+import pickle
+
+from PIL import ImageTk
+
 from app.utils import config
 from app.utils import utilities
 from app.src.schedule import Schedule

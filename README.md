@@ -25,11 +25,11 @@ Uživatel může určit šířku a výšku rozvrhu v pixelech, orientaci rozvrhu
 dnů. Dále může nastavit, kdy začíná a končí den a které dny týdne se mají vyobrazovat.
 
 Dependencies:
-colorama==0.4.6
-iniconfig==2.0.0
-packaging==24.2
-pillow==11.1.0
-pluggy==1.5.0
+colorama==0.4.6,
+iniconfig==2.0.0,
+packaging==24.2,
+pillow==11.1.0,
+pluggy==1.5.0,
 pytest==8.3.4
 
 Testy se pouští pomocí příkazu "pytest".
