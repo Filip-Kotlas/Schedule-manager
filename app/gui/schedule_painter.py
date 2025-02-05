@@ -32,7 +32,6 @@ class SchedulePainter():
         """Updates image of the painter."""
         self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
 
-
     def change_schedule(self, schedule: Schedule) -> None:
         """
         Changes the active schedule.
@@ -488,6 +487,6 @@ class SchedulePainter():
         Returns image of the schedule.
 
         Returns:
-            (tkinter.Canvas): Canvas to be returned.
+            (Image): Image to be returned.
         """
         return self.image

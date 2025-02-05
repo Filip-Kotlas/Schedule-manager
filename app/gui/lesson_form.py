@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import colorchooser
 from tkinter import ttk
+from tkinter import messagebox
 from datetime import time
 
 from app.utils import utilities
@@ -179,7 +180,10 @@ class LessonForm():
         self.new_lesson.end_time = time(int(self.widget_variables["end_time_hour"].get()),
                                         int(self.widget_variables["end_time_minute"].get()))
         self.new_lesson.set_hex_color(self.widget_variables["color"].get())
-        self.close()
+        if self.new_lesson.start_time < self.new_lesson.end_time:
+            self.close()
+        else:
+            messagebox.showwarning("Špatný čas", "Hodina nesmí začínat později než končí. Změňte čas!")
 
     def close(self):
         """Closes the lesson form window."""

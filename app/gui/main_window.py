@@ -7,7 +7,7 @@ import platform
 from typing import List
 import pickle
 
-from PIL import ImageTk
+from PIL import Image, ImageTk
 
 from app.utils import config
 from app.utils import utilities
@@ -23,12 +23,22 @@ class MainWindow():
         self.window = tk.Tk()
         self.window.title("Rozvrhář")
         self.set_window_geometry()
+        self.win_size = (0, 0)
         self.current_screen_state = utilities.ScreenState.SCHEDULE_LIST_SHOWN
         self.initialize_menu()
         self.schedules: List[Schedule] = []
         self.painter = SchedulePainter()
         self.painter.change_schedule(Schedule(""))
         self.tk_image = ImageTk.PhotoImage(self.painter.get_image())
+
+        def on_resize(event) -> None:
+            if self.current_screen_state == utilities.ScreenState.SCHEDULE_DRAWN:
+                if str(event.widget) == ".": # . is toplevel window
+                    if self.win_size != (event.width, event.height):
+                        self.win_size = (event.width, event.height)
+                        self.show_schedule()
+
+        self.window.bind("<Configure>", func=on_resize)
 
         self.display_schedule_list()
 
@@ -202,26 +212,27 @@ class MainWindow():
         Sets up the window. Draws the active schedule to the window.
         """
         self.clear_window()
-        self.window.grid_rowconfigure(0, weight=1)
-        self.window.grid_rowconfigure(1, weight=0)
-        self.window.grid_columnconfigure(0, weight=1)
-        self.window.grid_columnconfigure(1, weight=0)
+
+        canvas_frame = tk.Frame(self.window)
+        canvas_frame.pack(pady=5, padx=5, fill="both", expand=True)
+        canvas_frame.update_idletasks()
 
         settings = utilities.load_settings(config.SETTINGS_PATH)
-        canvas = tk.Canvas(self.window, width=settings["schedule_width"], height=settings["schedule_height"], background="white")
-        self.tk_image = ImageTk.PhotoImage(self.painter.get_image())
+
+        image_ratio = settings["schedule_width"]/float(settings["schedule_height"])
+        canvas_frame_ratio = canvas_frame.winfo_width()/float(canvas_frame.winfo_height())
+        if image_ratio >= canvas_frame_ratio:
+            canvas_width = canvas_frame.winfo_width()
+            canvas_height = int(canvas_width / image_ratio)
+        else:
+            canvas_height = canvas_frame.winfo_height()
+            canvas_width = int(canvas_height * image_ratio)
+
+        canvas = tk.Canvas(canvas_frame, width=canvas_width, height=canvas_height, background="white")
+        self.tk_image = ImageTk.PhotoImage(self.painter.get_image().resize((canvas_width, canvas_height), Image.Resampling.LANCZOS))
         canvas.delete("all")
         canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
-        canvas.grid(row=0, column=0)
-
-        horizontal_scrollbar = tk.Scrollbar(self.window, orient="horizontal", command=canvas.xview)
-        horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
-        vertical_scrollbar = tk.Scrollbar(self.window, orient="vertical", command=canvas.yview)
-        vertical_scrollbar.grid(row=0, column=1, sticky="ns")
-
-        canvas.configure(xscrollcommand=horizontal_scrollbar.set,
-                                   yscrollcommand=vertical_scrollbar.set,
-                                   scrollregion=(0, 0, int(canvas.cget("width")), int(canvas.cget("height"))))
+        canvas.pack()
 
     def save_schedule_as(self) -> None:
         """

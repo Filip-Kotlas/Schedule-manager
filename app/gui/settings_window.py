@@ -136,6 +136,10 @@ class SettingsWindow():
         if sum((int(var.get()) for var in self.widget_variables["days_variables"])) == 0:
             messagebox.showwarning(title="Nevybrán den", message="Musí být vybrán alespoň jeden den.")
             return
+        if (int(self.widget_variables["start_time"].get()[:2]) * 60 + int(self.widget_variables["start_time"].get()[3:5])
+            >= int(self.widget_variables["end_time"].get()[:2]) * 60 + int(self.widget_variables["end_time"].get()[3:5])):
+            messagebox.showwarning(title="Špatný čas", message="Den musí začínat dříve než končit. Změňte časy.")
+            return
 
         self.settings["schedule_width"] = int(self.widget_variables["width"].get())
         self.settings["schedule_height"] = int(self.widget_variables["height"].get())
