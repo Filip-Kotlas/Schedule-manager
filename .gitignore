@@ -116,10 +116,7 @@ dmypy.json
 .pyre/
 
 # My ignores
-assignment.txt
-literature.txt
 test.py
-test2.py
 Rozvrh.png
 Rozvrh_svisly.png
 Rozvrh.json

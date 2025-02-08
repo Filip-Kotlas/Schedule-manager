@@ -214,7 +214,7 @@ class MainWindow():
         self.clear_window()
 
         canvas_frame = tk.Frame(self.window)
-        canvas_frame.pack(pady=5, padx=5, fill="both", expand=True)
+        canvas_frame.pack(pady=10, padx=10, fill="both", expand=True)
         canvas_frame.update_idletasks()
 
         settings = utilities.load_settings(config.SETTINGS_PATH)
@@ -232,7 +232,7 @@ class MainWindow():
         self.tk_image = ImageTk.PhotoImage(self.painter.get_image().resize((canvas_width, canvas_height), Image.Resampling.LANCZOS))
         canvas.delete("all")
         canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
-        canvas.pack()
+        canvas.place(relx=0.5, rely=0.5, anchor="center")
 
     def save_schedule_as(self) -> None:
         """
