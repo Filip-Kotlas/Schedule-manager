@@ -6,6 +6,8 @@ from tkinter import messagebox
 import platform
 from typing import List
 import pickle
+from pathlib import Path
+import os
 
 from PIL import Image, ImageTk
 
@@ -21,12 +23,13 @@ class MainWindow():
 
     def __init__(self):
         self.window = tk.Tk()
-        self.window.title("Rozvrhář")
+        self.window.title(config.APP_NAME)
         self.set_window_geometry()
         self.win_size = (0, 0)
         self.current_screen_state = utilities.ScreenState.SCHEDULE_LIST_SHOWN
         self.initialize_menu()
         self.schedules: List[Schedule] = []
+        self.load_schedules(config.SCHEDULE_FOLDER_PATH)
         self.painter = SchedulePainter()
         self.painter.change_schedule(Schedule(""))
         self.tk_image = ImageTk.PhotoImage(self.painter.get_image())
@@ -76,8 +79,9 @@ class MainWindow():
         menu_bar.add_cascade(label="Rozvrhy", menu=schedule_menu)
         schedule_menu.add_command(label="Zobrazit", command=self.display_schedule_list, accelerator=f"{modifier_name}+V")
         schedule_menu.add_command(label="Nový", command=self.create_schedule, accelerator=f"{modifier_name}+N")
-        schedule_menu.add_command(label="Otevřít", command=self.load_schedule, accelerator=f"{modifier_name}+O")
-        schedule_menu.add_command(label="Uložit", command=self.save_schedule_as, accelerator=f"{modifier_name}+S")
+        schedule_menu.add_command(label="Otevřít", command=self.load_extra_schedule, accelerator=f"{modifier_name}+O")
+        schedule_menu.add_command(label="Uložit", command=self.save_schedule, accelerator=f"{modifier_name}+S")
+        schedule_menu.add_command(label="Uložit jako", command=self.save_schedule_as, accelerator=f"{modifier_name}+Shift+S")
 
         menu_bar.add_command(label="Hodiny", command=self.manage_lessons)
         menu_bar.add_command(label="Nastavení", command=self.open_settings)
@@ -86,8 +90,9 @@ class MainWindow():
 
         self.window.bind(f"<{modifier}-v>", lambda event: self.display_schedule_list())
         self.window.bind(f"<{modifier}-n>", lambda event: self.create_schedule())
-        self.window.bind(f"<{modifier}-s>", lambda event: self.save_schedule_as())
-        self.window.bind(f"<{modifier}-o>", lambda event: self.load_schedule())
+        self.window.bind(f"<{modifier}-s>", lambda event: self.save_schedule())
+        self.window.bind(f"<{modifier}-Shift-S>", lambda event: self.save_schedule_as())
+        self.window.bind(f"<{modifier}-o>", lambda event: self.load_extra_schedule())
         self.window.bind(f"<{modifier}-t>", lambda event: self.open_settings())
         self.window.bind(f"<{modifier}-h>", lambda event: self.manage_lessons())
 
@@ -152,18 +157,27 @@ class MainWindow():
     def rename_schedule(self, index: int) -> None:
         """
         Renames the chosen schedule.
+
+        Renames the schedule with given index. If the schedule is from the default schedule folder 
+        then it is renamed there to.
         
         Args:
             index (int): The index of the schedule to be renamed.
         """
-        name = simpledialog.askstring(title="Přejmenovat", prompt="Jméno", initialvalue=self.schedules[index].name)
-        if name:
-            self.schedules[index].rename(name)
+        new_name = simpledialog.askstring(title="Přejmenovat",
+                                          prompt="Jméno",
+                                          initialvalue=self.schedules[index].name)
+        if new_name:
+            if os.path.exists(config.SCHEDULE_FOLDER_PATH / f"{self.schedules[index].name}.txt"):
+                os.rename(config.SCHEDULE_FOLDER_PATH / f"{self.schedules[index].name}.txt",
+                          config.SCHEDULE_FOLDER_PATH / f"{new_name}.txt")
+
+            self.schedules[index].rename(new_name)
             self.display_schedule_list()
 
     def delete_schedule(self, index: int) -> None:
         """
-        Deletes the chosen schedule.
+        Deletes the chosen schedule from the schedule list and from the default schedule folder.
         
         First shows dialog window and asks for confirmation. Then deletes the schedule.
 
@@ -173,6 +187,9 @@ class MainWindow():
         confirm = messagebox.askyesno(title="Potvrdit",
                                       message=f"Opravdu chcete smazat rozvrh {self.schedules[index].name}?")
         if confirm:
+            file_path = config.SCHEDULE_FOLDER_PATH / f"{self.schedules[index].name}.txt"
+            if os.path.exists(file_path):
+                os.remove(file_path)
             self.schedules.pop(index)
             self.display_schedule_list()
 
@@ -234,12 +251,29 @@ class MainWindow():
         canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
         canvas.place(relx=0.5, rely=0.5, anchor="center")
 
+    def save_schedule(self) -> None:
+        """
+        Saves the active schedule to the default folder in .txt file.
+
+        First checks whether a schedule is shown, then saves the schedule in .txt file to the folder
+        where the schedules will be loaded from on the next start of the application.
+        """
+        if self.current_screen_state == utilities.ScreenState.SCHEDULE_LIST_SHOWN:
+            messagebox.showwarning(title="Nevybrán rozvrh", message="Nejdříve otevřete rozvrh, který chcete uložit.")
+            return
+
+        file_path = Path(config.SCHEDULE_FOLDER_PATH) / f"{self.painter.active_schedule.name}.txt"
+        
+        self.painter.active_schedule.save_to_txt_file(file_path)
+
     def save_schedule_as(self) -> None:
         """
         Saves the active schedule to a file.
 
-        First checks wheter a schedule is shown. Then dialog window and asks where to save the
-        schedule. If a destination is chosen, it saves the schedule there.
+        First checks wheter a schedule is shown, then dialog window asks where to save the
+        schedule. If a destination is chosen, it saves the schedule there. Default destination is
+        folder where the schedules will be automatically loaded from on the next start of the
+        application.
         """
         if self.current_screen_state == utilities.ScreenState.SCHEDULE_LIST_SHOWN:
             messagebox.showwarning(title="Nevybrán rozvrh", message="Nejdříve otevřete rozvrh, který chcete uložit.")
@@ -249,24 +283,52 @@ class MainWindow():
                                                 filetypes=[("PNG files", "*.png"),
                                                            ("JPEG files", "*.jpg"),
                                                            ("PDF files", "*.pdf"),
-                                                           ("JSON file", ".json")],
+                                                           ("TXT file", ".txt")],
+                                                initialdir=config.SCHEDULE_FOLDER_PATH,
                                                 initialfile="Rozvrh")
         if filename:
             if filename.endswith(".pdf"):
                 self.painter.image.save(filename, "PDF")
-            elif filename.endswith(".json"):
-                self.painter.active_schedule.save_to_json_file(filename)
+            elif filename.endswith(".txt"):
+                self.painter.active_schedule.save_to_txt_file(filename)
             else:
                 self.painter.image.save(filename)
 
-    def load_schedule(self) -> None:
+    def load_schedules(self, folder_name: str) -> None:
         """
-        Loads the schedule from JSON file.
+        Loads all the schedules saved in a folder.
 
-        Shows dialog window and asks for the file. Then saves the schedule to the list of schedules.
+        Checks if the valid folder name was passed. Checks if the .txt files contain valid schedule
+        data and then loads the schedules to the schedule list.
+
+        Args:
+            folder_name (str): Name of the folder to load the schedules from.
         """
-        filename = filedialog.askopenfilename(defaultextension=".json",
-                                              filetypes=[("JSON file", ".json")])
+        folder = Path(folder_name)
+
+        if not folder.exists() or not folder.is_dir():
+            messagebox.showerror("Složka nenalezena", "Nebyla nalezena složka s rozvrhy!")
+            return
+
+        for file in folder.glob("*.txt"):
+            try:
+                if file:
+                    with open(file, 'rb') as schedule_file:
+                        schedule = pickle.load(schedule_file)
+                    self.schedules.append(schedule)
+            except (EOFError, pickle.UnpicklingError):
+                messagebox.showerror("Poškozený soubor", f"Soubor '{file}' je poškozený a nejde načíst.")
+            except Exception as e:
+                messagebox.showerror("Chyba", f"Při načítání rozvrhu ze souboru '{file}' došlo k neočekávané chybě: {e}")
+
+    def load_extra_schedule(self) -> None:
+        """
+        Loads the chosen schedule from a BSON file.
+
+        Shows a dialog window and asks for the file. Then saves the schedule to the list of schedules.
+        """
+        filename = filedialog.askopenfilename(defaultextension=".txt",
+                                              filetypes=[("TXT file", ".txt")])
         if filename:
             with open(filename, 'rb') as file:
                 schedule = pickle.load(file)

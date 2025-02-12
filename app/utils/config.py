@@ -1,6 +1,9 @@
 """Contains constants used throughout the code."""
 from pathlib import Path
 
+APP_NAME = "Rozvrhář"
+SCHEDULE_FOLDER_PATH = Path(__file__).parent.parent / "schedules"
+
 MAIN_WINDOW_INITIAL_SIZE = (800, 600)
 LESSON_WINDOW_INITIAL_SIZE = (600, 400)
 SETTINGS_PATH = Path(__file__).parent / "settings.json"

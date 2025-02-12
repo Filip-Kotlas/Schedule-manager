@@ -79,7 +79,7 @@ def test_save_and_load_to_json_file(index):
     schedule.add_lesson(lesson1)
     schedule.add_lesson(lesson2)
     file_path = Path(__file__).parent / "rozvrh.json"
-    schedule.save_to_json_file(file_path)
+    schedule.save_to_txt_file(file_path)
 
     assert os.path.exists(file_path)
 

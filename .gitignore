@@ -116,7 +116,4 @@ dmypy.json
 .pyre/
 
 # My ignores
-test.py
-Rozvrh.png
-Rozvrh_svisly.png
-Rozvrh.json
+/app/schedules/*

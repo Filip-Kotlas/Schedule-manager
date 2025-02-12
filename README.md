@@ -32,6 +32,6 @@ pillow==11.1.0,
 pluggy==1.5.0,
 pytest==8.3.4
 
+TODO: Přidat resources.txt nebo jak to bylo.
+
 Testy se pouští pomocí příkazu "pytest".
-
-

@@ -38,9 +38,9 @@ class Schedule:
         """
         self.lessons.pop(index)
 
-    def save_to_json_file(self, filename: str) -> None:
+    def save_to_txt_file(self, filename: str) -> None:
         """
-        Saves the schedule to a JSON file.
+        Saves the schedule to a TXT file.
         
         Args:
             filename (str): Name of the file to save the schedule to.
