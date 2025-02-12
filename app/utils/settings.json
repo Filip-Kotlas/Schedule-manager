@@ -3,7 +3,7 @@
     "schedule_height": 500,
     "schedule_orientation": "horizontal",
     "day_start": "08:00",
-    "day_end": "20:00",
+    "day_end": "22:00",
     "days_in_week": "1111100",
     "text_scale": 1.0,
     "text_font": "arial.ttf",

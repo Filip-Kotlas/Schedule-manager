@@ -2,6 +2,7 @@
 import math
 from typing import Tuple
 from typing import Dict
+from typing import List
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -16,7 +17,9 @@ class SchedulePainter():
 
     def __init__(self):
         self.settings = utilities.load_settings(config.SETTINGS_PATH)
-        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
+        self.image = Image.new("RGB",
+                               (self.settings["schedule_width"], self.settings["schedule_height"]),
+                               "white")
         self.font = self.settings["text_font"]
         self.bold_font = self.settings["text_bold_font"]
         self.active_schedule = None
@@ -30,7 +33,9 @@ class SchedulePainter():
 
     def update_image(self) -> None:
         """Updates image of the painter."""
-        self.image = Image.new("RGB", (self.settings["schedule_width"], self.settings["schedule_height"]), "white")
+        self.image = Image.new("RGB",
+                               (self.settings["schedule_width"], self.settings["schedule_height"]),
+                               "white")
 
     def change_schedule(self, schedule: Schedule) -> None:
         """
@@ -48,7 +53,8 @@ class SchedulePainter():
         Based on the set orientation draws the horizontal or vertical schedule.
         """
         draw = ImageDraw.Draw(self.image)
-        draw.rectangle((0, 0, self.settings["schedule_width"], self.settings["schedule_height"]), fill="white")
+        draw.rectangle((0, 0, self.settings["schedule_width"], self.settings["schedule_height"]),
+                       fill="white")
 
         if self.settings["schedule_orientation"] == "horizontal":
             self.draw_horizontal(draw)
@@ -77,30 +83,46 @@ class SchedulePainter():
                         - int(self.settings["day_start"][3:5]))
         hours_in_day = hours_in_day / 60
 
-        valid_lessons = (lssn for lssn in self.active_schedule.lessons if self.settings["days_in_week"][lssn.day.value] == "1" )
+        valid_lessons = [lssn for lssn in self.active_schedule.lessons if self.settings["days_in_week"][lssn.day.value] == "1"]
         for lesson in valid_lessons:
+            try:
+                collision_bool = lesson.has_collision(valid_lessons)
+            except Exception as e:
+                print(f"Chyba: {e}")
+                collision_bool = False, False
+
+            lesson_dimensions = [0, 0]
+            lesson_dimensions[1] = cell_dimension[1]
+            days_before = sum((int(char) for char in self.settings["days_in_week"][:lesson.day.value]))
+            y_offset = days_before * cell_dimension[1]
+            if collision_bool[0]:
+                lesson_dimensions[1] = int(cell_dimension[1]/2)
+                if not collision_bool[1]:
+                    y_offset += lesson_dimensions[1]
+
             time_delta = lesson.start_time.hour * 60 \
                          + lesson.start_time.minute \
                          - int(self.settings["day_start"][:2])*60 \
                          - int(self.settings["day_start"][3:5])
-            days_before = sum((int(char) for char in self.settings["days_in_week"][:lesson.day.value]))
-
-            duration = lesson.end_time.hour*60 + lesson.end_time.minute - lesson.start_time.hour*60 - lesson.start_time.minute
-            lesson_width = int(cell_dimension[0]*duration/60)
-
             x_offset = time_delta / 60 * cell_dimension[0]
-            y_offset = days_before * cell_dimension[1]
 
-            if x_offset + lesson_width > 0 and x_offset < hours_in_day * cell_dimension[0]:
+            duration = (lesson.end_time.hour*60
+                        + lesson.end_time.minute
+                        - lesson.start_time.hour*60
+                        - lesson.start_time.minute)
+            lesson_dimensions[0] = int(cell_dimension[0]*duration/60)
+
+
+            if x_offset + lesson_dimensions[0] > 0 and x_offset < hours_in_day * cell_dimension[0]:
                 if x_offset < 0:
-                    lesson_width = lesson_width + x_offset
+                    lesson_dimensions[0] = lesson_dimensions[0] + x_offset
                     x_offset = 0
-                elif x_offset + lesson_width > hours_in_day * cell_dimension[0]:
-                    lesson_width = hours_in_day * cell_dimension[0] - x_offset
+                elif x_offset + lesson_dimensions[0] > hours_in_day * cell_dimension[0]:
+                    lesson_dimensions[0] = hours_in_day * cell_dimension[0] - x_offset
                 self.draw_lesson_horizontal(draw,
                                             lesson,
                                             (base_origin[0] + x_offset, base_origin[1] + y_offset),
-                                            (lesson_width, cell_dimension[1]))
+                                            (lesson_dimensions[0], lesson_dimensions[1]))
 
     def compute_schedule_layout_dimensions(self) -> Dict:
         """
@@ -152,7 +174,10 @@ class SchedulePainter():
                        - lay_dim["text_padding"]
                        - 2*lay_dim["side_offset"])/float(self.settings["days_in_week"].count("1"))
         base_origin = (lay_dim["schedule_padding"] + lay_dim["left_side_offset"],
-                       lay_dim["schedule_padding"] + lay_dim["text_size"] + lay_dim["text_padding"] + lay_dim["side_offset"])
+                       (lay_dim["schedule_padding"]
+                        + lay_dim["text_size"]
+                        + lay_dim["text_padding"]
+                        + lay_dim["side_offset"]))
 
         draw.text((lay_dim["schedule_padding"], lay_dim["schedule_padding"]),
                   text=self.active_schedule.name,

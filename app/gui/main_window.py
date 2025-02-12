@@ -263,7 +263,7 @@ class MainWindow():
             return
 
         file_path = Path(config.SCHEDULE_FOLDER_PATH) / f"{self.painter.active_schedule.name}.txt"
-        
+
         self.painter.active_schedule.save_to_txt_file(file_path)
 
     def save_schedule_as(self) -> None:
@@ -317,9 +317,11 @@ class MainWindow():
                         schedule = pickle.load(schedule_file)
                     self.schedules.append(schedule)
             except (EOFError, pickle.UnpicklingError):
-                messagebox.showerror("Poškozený soubor", f"Soubor '{file}' je poškozený a nejde načíst.")
-            except Exception as e:
-                messagebox.showerror("Chyba", f"Při načítání rozvrhu ze souboru '{file}' došlo k neočekávané chybě: {e}")
+                messagebox.showerror("Poškozený soubor",
+                                     f"Soubor '{file}' je poškozený a nejde načíst.")
+            except Exception as e: #TODO: Fix this
+                messagebox.showerror("Chyba",
+                                     f"Při načítání rozvrhu ze souboru '{file}' došlo k neočekávané chybě: {e}")
 
     def load_extra_schedule(self) -> None:
         """
