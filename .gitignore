@@ -117,3 +117,5 @@ dmypy.json
 
 # My ignores
 /app/schedules/*
+!/app/schedules/.gitkeep
+
