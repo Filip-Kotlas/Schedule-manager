@@ -69,5 +69,5 @@ class Lesson:
                         first = lesson_list.index(self) < index
 
         if number_of_collisions >= 2:
-            raise Exception("V je rozvrh s více kolizemi.")
+            raise Exception("V rozvrhu je hodina s více kolizemi.")
         return collision, first
