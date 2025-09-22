@@ -2,6 +2,9 @@
 
 Aplikace umožňuje vytvářet a upravovat osobní rozvrh.
 
+Pro fungování aplikace, je potřeba mít nainstalovaný python a příslušné balíčky vypsané níže.
+Tutoriály k nainstalování pythonu a balíčků by měli být snadno dostupné na google.
+
 Spouští se ze složky se souborem app příkazem "python -m app.rozvrh" (pro nastavení jiného způsobu
 spouštění čtěte níže). Po spuštění se otevře okno se seznamem rozvrhů uložených ve složce schedules.
 V menu jsou tři možnosti, Rozvrhy, Hodiny a Nastavení.
