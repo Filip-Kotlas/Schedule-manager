@@ -46,7 +46,7 @@ souboru vložte příkaz:
 C:\Windows\System32\cmd.exe /c cd "umístění_aplikace" & python -m app.rozvrh
 
 kde místo "umístění_aplikace" vložte adresu, kam jste uložili soubory aplikace
-(např.: "C:\Users\Filip\Schedule_manager"). Klikněte na "Další". Zadejte jméno zástupce. Klikněte na
+(např.: "C:\Users\Filip\Schedule-manager"). Klikněte na "Další". Zadejte jméno zástupce. Klikněte na
 dokončit. Nyní lze aplikaci spouštět kliknutím na vzniklého zástupce. Pokud chcete změnit ikonu
 zástupce, klikněte na zástupce pravým tlačítkem a zvolte vlastnosti. Ve vyvolaném okénku klikněte na
 "Změnit ikonu". Klikněte na "Procházet" a najděte umístění souborů aplikace. Zvolte soubor
