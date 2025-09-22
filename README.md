@@ -2,9 +2,9 @@
 
 Aplikace umožňuje vytvářet a upravovat osobní rozvrh.
 
-Spouští se ze složky se souborem app příkazem "python -m app.rozvrh". Po spuštění se otevře okno
-se seznamem rozvrhů uložených ve složce schedules. V menu jsou tři možnosti, Rozvrhy, Hodiny
-a Nastavení.
+Spouští se ze složky se souborem app příkazem "python -m app.rozvrh" (pro nastavení jiného způsobu
+spouštění čtěte níže). Po spuštění se otevře okno se seznamem rozvrhů uložených ve složce schedules.
+V menu jsou tři možnosti, Rozvrhy, Hodiny a Nastavení.
 
 Při kliknutí na Rozvrhy se
 nabídnou další tři možnosti:
@@ -38,3 +38,16 @@ pluggy==1.5.0,
 pytest==8.3.4
 
 Testy se pouští pomocí příkazu "pytest" ze stejné složky jako se spouští program.
+
+Pokud chcete aplikaci spouštět ve windows pomocí ikonky zástupce na ploše (nebo jinde), postupujte
+následovně. Klikněte pravým tlačítkem myši. Zvolte "Nový" a následně "Zástupce". Do kolonky umístění
+souboru vložte příkaz:
+
+C:\Windows\System32\cmd.exe /c cd "umístění_aplikace" & python -m app.rozvrh
+
+kde místo "umístění_aplikace" vložte adresu, kam jste uložili soubory aplikace
+(např.: "C:\Users\Filip\Schedule_manager"). Klikněte na "Další". Zadejte jméno zástupce. Klikněte na
+dokončit. Nyní lze aplikaci spouštět kliknutím na vzniklého zástupce. Pokud chcete změnit ikonu
+zástupce, klikněte na zástupce pravým tlačítkem a zvolte vlastnosti. Ve vyvolaném okénku klikněte na
+"Změnit ikonu". Klikněte na "Procházet" a najděte umístění souborů aplikace. Zvolte soubor
+"schedule_icon.ico". Klikněte na "OK" a znovu na "OK". Nastavení je kompletní.
